@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  password   String
+  inviteCode String?  @unique
+  coupleId   String?
+  couple     Couple?  @relation(fields: [coupleId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sentNotes Note[]     @relation("SentNotes")
+  moods     Mood[]
+  lists     List[]
+  events    Event[]
+  listItems ListItem[] @relation("CompletedBy")
+}
+
+model Couple {
+  id          String    @id @default(cuid())
+  anniversary DateTime?
+  createdAt   DateTime  @default(now())
+
+  users  User[]
+  notes  Note[]
+  lists  List[]
+  events Event[]
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String
+  emoji     String   @default("💌")
+  authorId  String
+  author    User     @relation("SentNotes", fields: [authorId], references: [id])
+  coupleId  String
+  couple    Couple   @relation(fields: [coupleId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model List {
+  id        String     @id @default(cuid())
+  title     String
+  icon      String     @default("📝")
+  creatorId String
+  creator   User       @relation(fields: [creatorId], references: [id])
+  coupleId  String
+  couple    Couple     @relation(fields: [coupleId], references: [id])
+  items     ListItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model ListItem {
+  id          String   @id @default(cuid())
+  content     String
+  completed   Boolean  @default(false)
+  completedById String?
+  completedBy User?    @relation("CompletedBy", fields: [completedById], references: [id])
+  listId      String
+  list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Mood {
+  id        String   @id @default(cuid())
+  emoji     String
+  note      String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  type      String   @default("date") // date, milestone, reminder, anniversary
+  emoji     String   @default("📅")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  coupleId  String
+  couple    Couple   @relation(fields: [coupleId], references: [id])
+  createdAt DateTime @default(now())
+}
