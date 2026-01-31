@@ -5,7 +5,7 @@ struct TandemUser: Codable, Identifiable {
     let email: String
     let name: String
     let coupleId: String?
-    let notificationHour: Int
-    let notificationMin: Int
-    let createdAt: String
+    let notificationHour: Int?
+    let notificationMin: Int?
+    let createdAt: String?
 }
