@@ -11,15 +11,35 @@ enum CreateAccountField: Hashable {
 struct CreateAccountView: View {
     @EnvironmentObject var appViewModel: AppViewModel
 
-    @State private var isSignUp = true
+    /// Invite code from Partner B flow (nil for Partner A)
+    var inviteCode: String?
+
+    /// Partner name to display in the banner (Partner B flow)
+    var partnerName: String?
+
+    /// If true, start with Sign In selected instead of Sign Up
+    var initialSignInMode: Bool
+
+    @State private var isSignUp: Bool
     @State private var name = ""
     @State private var email = ""
     @State private var password = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var contentOpacity: Double = 0
+    @State private var contentOffset: CGFloat = 15
+
+    @State private var isPasswordRevealed = false
 
     @FocusState private var focusedField: CreateAccountField?
+
+    init(inviteCode: String? = nil, partnerName: String? = nil, initialSignInMode: Bool = false) {
+        self.inviteCode = inviteCode
+        self.partnerName = partnerName
+        self.initialSignInMode = initialSignInMode
+        self._isSignUp = State(initialValue: !initialSignInMode)
+    }
 
     var body: some View {
         ScrollView {
@@ -27,6 +47,12 @@ struct CreateAccountView: View {
                 // MARK: - Header
                 headerSection
                     .padding(.top, TandemSpacing.xl)
+
+                // MARK: - Partner Banner (Partner B flow)
+                if let partnerName = partnerName, inviteCode != nil {
+                    partnerBanner(name: partnerName)
+                        .padding(.horizontal, TandemSpacing.xl)
+                }
 
                 // MARK: - Mode Toggle
                 modeToggle
@@ -53,10 +79,19 @@ struct CreateAccountView: View {
 
                 Spacer(minLength: TandemSpacing.xl)
             }
+            .opacity(contentOpacity)
+            .offset(y: contentOffset)
         }
+        .background(TandemColors.background.ignoresSafeArea())
         .scrollDismissesKeyboard(.interactively)
         .onTapGesture {
             focusedField = nil
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.1)) {
+                contentOpacity = 1.0
+                contentOffset = 0
+            }
         }
     }
 
@@ -64,16 +99,31 @@ struct CreateAccountView: View {
 
     private var headerSection: some View {
         VStack(spacing: TandemSpacing.sm) {
-            Image(systemName: isSignUp ? "person.badge.plus" : "person.crop.circle.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(
-                    LinearGradient(
-                        gradient: Gradient(colors: [TandemColors.primary, TandemColors.accent]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                TandemColors.primary.opacity(0.12),
+                                TandemColors.accent.opacity(0.08)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
-                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isSignUp)
+                    .frame(width: 88, height: 88)
+
+                Image(systemName: isSignUp ? "person.badge.plus" : "person.crop.circle.fill")
+                    .font(.system(size: 38))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [TandemColors.primary, TandemColors.accent]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isSignUp)
 
             Text(isSignUp ? "Create Your Account" : "Welcome Back")
                 .font(TandemFonts.title)
@@ -81,11 +131,49 @@ struct CreateAccountView: View {
 
             Text(isSignUp
                 ? "Start your journey together"
-                : "Sign in to continue")
+                : "Sign in to continue your journey")
                 .font(TandemFonts.body)
                 .foregroundColor(TandemColors.textSecondary)
+                .multilineTextAlignment(.center)
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isSignUp)
+    }
+
+    // MARK: - Partner Banner
+
+    private func partnerBanner(name: String) -> some View {
+        HStack(spacing: TandemSpacing.sm) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 14))
+                .foregroundColor(TandemColors.primary)
+
+            Text("Joining \(name)\u{2019}s couple")
+                .font(TandemFonts.body)
+                .foregroundColor(TandemColors.primary)
+                .fontWeight(.medium)
+
+            Spacer()
+
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 16))
+                .foregroundColor(TandemColors.secondary)
+        }
+        .padding(TandemSpacing.md)
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    TandemColors.primary.opacity(0.08),
+                    TandemColors.accent.opacity(0.06)
+                ]),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .cornerRadius(TandemCornerRadius.button)
+        .overlay(
+            RoundedRectangle(cornerRadius: TandemCornerRadius.button)
+                .stroke(TandemColors.primary.opacity(0.15), lineWidth: 1)
+        )
     }
 
     // MARK: - Mode Toggle
@@ -238,8 +326,6 @@ struct CreateAccountView: View {
 
     // MARK: - Styled Secure Field
 
-    @State private var isPasswordRevealed = false
-
     private func styledSecureField(
         icon: String,
         placeholder: String,
@@ -338,7 +424,7 @@ struct CreateAccountView: View {
                 } else {
                     Text(isSignUp ? "Create Account" : "Sign In")
 
-                    Image(systemName: "arrow.right")
+                    Image(systemName: isSignUp ? "arrow.right" : "arrow.right.to.line")
                         .font(.system(size: 14, weight: .semibold))
                 }
             }
@@ -375,7 +461,8 @@ struct CreateAccountView: View {
                     try await appViewModel.register(
                         name: name.trimmingCharacters(in: .whitespaces),
                         email: email.lowercased().trimmingCharacters(in: .whitespaces),
-                        password: password
+                        password: password,
+                        inviteCode: inviteCode
                     )
                 } else {
                     try await appViewModel.login(
@@ -403,7 +490,20 @@ struct CreateAccountView: View {
     }
 }
 
-#Preview {
+#Preview("Sign Up") {
     CreateAccountView()
+        .environmentObject(AppViewModel())
+}
+
+#Preview("Partner B Flow") {
+    CreateAccountView(
+        inviteCode: "ABC123",
+        partnerName: "Alex"
+    )
+    .environmentObject(AppViewModel())
+}
+
+#Preview("Sign In") {
+    CreateAccountView(initialSignInMode: true)
         .environmentObject(AppViewModel())
 }

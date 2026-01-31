@@ -52,12 +52,18 @@ class AppViewModel: ObservableObject {
         await loadProfile()
     }
 
-    func register(name: String, email: String, password: String) async throws {
-        let response = try await APIService.shared.register(name: name, email: email, password: password)
+    func register(name: String, email: String, password: String, inviteCode: String? = nil) async throws {
+        let response = try await APIService.shared.register(name: name, email: email, password: password, inviteCode: inviteCode)
         APIService.shared.setToken(response.token)
         currentUser = response.user
         isAuthenticated = true
-        isPaired = false
+        isPaired = response.paired ?? (response.user.coupleId != nil)
+        if let pName = response.partnerName {
+            partnerName = pName
+        }
+        if isPaired {
+            await loadProfile()
+        }
     }
 
     func logout() {

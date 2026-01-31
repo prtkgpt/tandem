@@ -99,15 +99,19 @@ class APIService {
 
     // MARK: - Auth
 
-    func register(name: String, email: String, password: String) async throws -> AuthResponse {
+    func register(name: String, email: String, password: String, inviteCode: String? = nil) async throws -> AuthResponse {
+        var body: [String: Any] = [
+            "name": name,
+            "email": email,
+            "password": password
+        ]
+        if let code = inviteCode {
+            body["inviteCode"] = code
+        }
         return try await request(
             method: "POST",
             path: "/api/auth/register",
-            body: [
-                "name": name,
-                "email": email,
-                "password": password
-            ],
+            body: body,
             authenticated: false
         )
     }
@@ -132,6 +136,15 @@ class APIService {
     }
 
     // MARK: - Partner
+
+    func validateCode(code: String) async throws -> ValidateCodeResponse {
+        return try await request(
+            method: "POST",
+            path: "/api/partner/validate-code",
+            body: ["code": code],
+            authenticated: false
+        )
+    }
 
     func createInvite() async throws -> InviteResponse {
         return try await request(

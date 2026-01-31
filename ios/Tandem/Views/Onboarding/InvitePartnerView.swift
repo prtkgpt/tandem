@@ -3,6 +3,8 @@ import SwiftUI
 struct InvitePartnerView: View {
     @EnvironmentObject var appViewModel: AppViewModel
 
+    let onSkip: () -> Void
+
     @State private var inviteCode: String?
     @State private var partnerCode = ""
     @State private var isLoadingCode = false
@@ -15,6 +17,11 @@ struct InvitePartnerView: View {
     @State private var cardsOpacity: Double = 0
 
     @FocusState private var isCodeFieldFocused: Bool
+
+    private var shareMessage: String {
+        let code = inviteCode ?? ""
+        return "Join me on Tandem! Use my invite code: \(code)\n\nDownload Tandem and let\u{2019}s stay connected as a couple."
+    }
 
     var body: some View {
         ScrollView {
@@ -46,9 +53,13 @@ struct InvitePartnerView: View {
                         ))
                 }
 
-                // MARK: - Logout Option
-                logoutButton
-                    .padding(.top, TandemSpacing.md)
+                // MARK: - Skip for Now
+                skipButton
+                    .padding(.top, TandemSpacing.sm)
+
+                // MARK: - Sign Out
+                signOutButton
+                    .padding(.top, TandemSpacing.xs)
 
                 Spacer(minLength: TandemSpacing.xl)
             }
@@ -71,8 +82,23 @@ struct InvitePartnerView: View {
     private var headerSection: some View {
         VStack(spacing: TandemSpacing.sm) {
             ZStack {
+                // Decorative ring
                 Circle()
-                    .fill(TandemColors.secondary.opacity(0.15))
+                    .stroke(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                TandemColors.secondary.opacity(0.3),
+                                TandemColors.primary.opacity(0.1)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 3
+                    )
+                    .frame(width: 108, height: 108)
+
+                Circle()
+                    .fill(TandemColors.secondary.opacity(0.12))
                     .frame(width: 100, height: 100)
 
                 Image(systemName: "person.2.fill")
@@ -117,39 +143,69 @@ struct InvitePartnerView: View {
                     .progressViewStyle(CircularProgressViewStyle(tint: TandemColors.secondary))
                     .frame(height: 60)
             } else if let code = inviteCode {
-                // Invite code display
-                HStack(spacing: TandemSpacing.xs) {
+                // Invite code display in individual boxes
+                HStack(spacing: TandemSpacing.xs + 2) {
                     ForEach(Array(code.enumerated()), id: \.offset) { _, character in
                         Text(String(character))
                             .font(.system(size: 28, weight: .bold, design: .monospaced))
                             .foregroundColor(TandemColors.textPrimary)
-                            .frame(width: 42, height: 52)
-                            .background(TandemColors.background)
-                            .cornerRadius(TandemCornerRadius.small)
+                            .frame(width: 44, height: 54)
+                            .background(
+                                RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                                    .fill(TandemColors.background)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                                    .stroke(TandemColors.secondary.opacity(0.3), lineWidth: 1.5)
+                            )
                     }
                 }
                 .padding(.vertical, TandemSpacing.sm)
 
-                // Copy button
-                Button {
-                    copyCode()
-                } label: {
-                    HStack(spacing: TandemSpacing.sm) {
-                        Image(systemName: codeCopied ? "checkmark.circle.fill" : "doc.on.doc")
-                            .font(.system(size: 16))
-                        Text(codeCopied ? "Copied!" : "Copy Code")
-                            .font(TandemFonts.headline)
+                // Action buttons row
+                HStack(spacing: TandemSpacing.sm) {
+                    // Copy Code button
+                    Button {
+                        copyCode()
+                    } label: {
+                        HStack(spacing: TandemSpacing.xs) {
+                            Image(systemName: codeCopied ? "checkmark.circle.fill" : "doc.on.doc")
+                                .font(.system(size: 15))
+                            Text(codeCopied ? "Copied!" : "Copy Code")
+                                .font(TandemFonts.headline)
+                        }
+                        .foregroundColor(codeCopied ? TandemColors.secondary : TandemColors.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, TandemSpacing.sm + 2)
+                        .background(
+                            (codeCopied ? TandemColors.secondary : TandemColors.primary)
+                                .opacity(0.1)
+                        )
+                        .cornerRadius(TandemCornerRadius.button)
                     }
-                    .foregroundColor(codeCopied ? TandemColors.secondary : TandemColors.primary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, TandemSpacing.sm + 2)
-                    .background(
-                        (codeCopied ? TandemColors.secondary : TandemColors.primary)
-                            .opacity(0.1)
-                    )
-                    .cornerRadius(TandemCornerRadius.button)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: codeCopied)
+
+                    // Share via Text button
+                    ShareLink(item: shareMessage) {
+                        HStack(spacing: TandemSpacing.xs) {
+                            Image(systemName: "message.fill")
+                                .font(.system(size: 15))
+                            Text("Share")
+                                .font(TandemFonts.headline)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, TandemSpacing.sm + 2)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [TandemColors.primary, TandemColors.accent]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(TandemCornerRadius.button)
+                    }
                 }
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: codeCopied)
             } else {
                 // Error state with retry
                 VStack(spacing: TandemSpacing.sm) {
@@ -194,7 +250,7 @@ struct InvitePartnerView: View {
             HStack {
                 Image(systemName: "keyboard")
                     .foregroundColor(TandemColors.accent)
-                Text("Enter Partner's Code")
+                Text("Enter Partner\u{2019}s Code")
                     .font(TandemFonts.headline)
                     .foregroundColor(TandemColors.textPrimary)
                 Spacer()
@@ -210,7 +266,6 @@ struct InvitePartnerView: View {
                     .multilineTextAlignment(.center)
                     .focused($isCodeFieldFocused)
                     .onChange(of: partnerCode) { _, newValue in
-                        // Limit to 6 characters, uppercase
                         let filtered = String(newValue.uppercased().prefix(6))
                         if filtered != newValue {
                             partnerCode = filtered
@@ -279,15 +334,29 @@ struct InvitePartnerView: View {
         .cornerRadius(TandemCornerRadius.small)
     }
 
-    // MARK: - Logout Button
+    // MARK: - Skip Button
 
-    private var logoutButton: some View {
+    private var skipButton: some View {
+        Button(action: onSkip) {
+            Text("Skip for now")
+                .font(TandemFonts.body)
+                .foregroundColor(TandemColors.textSecondary)
+        }
+    }
+
+    // MARK: - Sign Out Button
+
+    private var signOutButton: some View {
         Button {
             appViewModel.logout()
         } label: {
-            Text("Sign Out")
-                .font(TandemFonts.body)
-                .foregroundColor(TandemColors.textSecondary)
+            HStack(spacing: TandemSpacing.xs) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: 14))
+                Text("Sign Out")
+                    .font(TandemFonts.caption)
+            }
+            .foregroundColor(TandemColors.textSecondary.opacity(0.7))
         }
     }
 
@@ -332,7 +401,6 @@ struct InvitePartnerView: View {
         UIPasteboard.general.string = code
         codeCopied = true
 
-        // Reset after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation { codeCopied = false }
         }
@@ -372,6 +440,6 @@ struct InvitePartnerView: View {
 }
 
 #Preview {
-    InvitePartnerView()
+    InvitePartnerView(onSkip: {})
         .environmentObject(AppViewModel())
 }
