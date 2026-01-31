@@ -31,7 +31,7 @@ struct SettingsView: View {
             List {
                 // Profile
                 Section {
-                    HStack(spacing: 16) {
+                    HStack(spacing: TandemSpacing.md) {
                         ZStack {
                             Circle()
                                 .fill(
@@ -43,37 +43,40 @@ struct SettingsView: View {
                                 )
                                 .frame(width: 56, height: 56)
                             Text(String((appViewModel.currentUser?.name ?? "?").prefix(1)).uppercased())
-                                .font(.title2)
-                                .fontWeight(.bold)
+                                .font(TandemFonts.title)
                                 .foregroundColor(.white)
                         }
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: TandemSpacing.xs) {
                             Text(appViewModel.currentUser?.name ?? "User")
-                                .font(.headline)
+                                .font(TandemFonts.headline)
+                                .foregroundColor(TandemColors.textPrimary)
                             Text(appViewModel.currentUser?.email ?? "")
-                                .font(.subheadline)
+                                .font(TandemFonts.caption)
                                 .foregroundColor(TandemColors.textSecondary)
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, TandemSpacing.xs)
                 }
 
                 // Partner
                 Section("Partner") {
                     if appViewModel.isPaired, let partner = appViewModel.partnerName {
-                        HStack {
+                        HStack(spacing: TandemSpacing.sm) {
                             Image(systemName: "heart.fill")
                                 .foregroundColor(TandemColors.primary)
                             Text("Connected with \(partner)")
+                                .font(TandemFonts.body)
+                                .foregroundColor(TandemColors.textPrimary)
                             Spacer()
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
+                                .foregroundColor(TandemColors.secondary)
                         }
                     } else {
-                        HStack {
+                        HStack(spacing: TandemSpacing.sm) {
                             Image(systemName: "link")
                                 .foregroundColor(TandemColors.textSecondary)
                             Text("Not yet paired")
+                                .font(TandemFonts.body)
                                 .foregroundColor(TandemColors.textSecondary)
                         }
                     }
@@ -86,18 +89,20 @@ struct SettingsView: View {
                         selection: notificationTime,
                         displayedComponents: .hourAndMinute
                     )
+                    .font(TandemFonts.body)
                 }
 
                 // Subscription
                 Section("Subscription") {
-                    HStack {
+                    HStack(spacing: TandemSpacing.sm) {
                         Image(systemName: "crown.fill")
-                            .foregroundColor(.orange)
-                        VStack(alignment: .leading) {
+                            .foregroundColor(TandemColors.accent)
+                        VStack(alignment: .leading, spacing: TandemSpacing.xxs) {
                             Text(appViewModel.couple?.subscriptionStatus == "active" ? "Tandem Pro" : "Free Trial")
-                                .fontWeight(.medium)
+                                .font(TandemFonts.callout)
+                                .foregroundColor(TandemColors.textPrimary)
                             Text("$4.99/month after trial")
-                                .font(.caption)
+                                .font(TandemFonts.caption)
                                 .foregroundColor(TandemColors.textSecondary)
                         }
                     }
@@ -107,8 +112,11 @@ struct SettingsView: View {
                 Section("About") {
                     HStack {
                         Text("Version")
+                            .font(TandemFonts.body)
+                            .foregroundColor(TandemColors.textPrimary)
                         Spacer()
                         Text("0.1.0")
+                            .font(TandemFonts.caption)
                             .foregroundColor(TandemColors.textSecondary)
                     }
                 }
@@ -121,7 +129,7 @@ struct SettingsView: View {
                         HStack {
                             Spacer()
                             Text("Sign Out")
-                                .fontWeight(.medium)
+                                .font(TandemFonts.callout)
                             Spacer()
                         }
                     }

@@ -21,7 +21,7 @@ struct AppreciationCardView: View {
 
     private var cardBackground: Color {
         isFromMe
-            ? TandemColors.primary.opacity(0.06)
+            ? TandemColors.appreciationColor.opacity(0.06)
             : TandemColors.cardBackground
     }
 
@@ -32,17 +32,16 @@ struct AppreciationCardView: View {
             // Heart icon
             Image(systemName: "heart.fill")
                 .font(.system(size: 18))
-                .foregroundColor(TandemColors.primary.opacity(0.6))
+                .foregroundColor(TandemColors.appreciationColor.opacity(0.7))
                 .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: TandemSpacing.xs) {
                 // Sender and time
                 HStack {
                     Text(senderLabel)
-                        .font(TandemFonts.caption)
-                        .fontWeight(.semibold)
+                        .font(TandemFonts.captionBold)
                         .foregroundColor(
-                            isFromMe ? TandemColors.primary : TandemColors.secondary
+                            isFromMe ? TandemColors.appreciationColor : TandemColors.secondary
                         )
 
                     Spacer()

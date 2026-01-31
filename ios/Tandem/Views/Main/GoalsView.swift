@@ -10,40 +10,44 @@ struct GoalsView: View {
     // New goal form
     @State private var newName = ""
     @State private var newTarget = ""
-    @State private var newEmoji = "💰"
+    @State private var newEmoji = "\u{1F4B0}"
     @State private var contributeAmount = ""
 
-    private let emojiOptions = ["💰", "🏖️", "🏠", "🚗", "💍", "🎓", "🛫", "🎁", "🏋️", "📱"]
+    private let emojiOptions = ["\u{1F4B0}", "\u{1F3D6}\u{FE0F}", "\u{1F3E0}", "\u{1F697}", "\u{1F48D}", "\u{1F393}", "\u{1F6EB}", "\u{1F381}", "\u{1F3CB}\u{FE0F}", "\u{1F4F1}"]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: TandemSpacing.lg) {
                     if isLoading {
-                        ProgressView().padding(.top, 60)
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: TandemColors.goalColor))
+                            .padding(.top, 60)
                     } else if goals.isEmpty {
                         emptyState
                     } else {
+                        goalsHeader
+
                         ForEach(goals) { goal in
                             GoalCardView(goal: goal) {
                                 selectedGoal = goal
                                 showContribute = true
                             }
-                            .padding(.horizontal)
+                            .padding(.horizontal, TandemSpacing.md)
                         }
                     }
                 }
-                .padding(.vertical)
+                .padding(.bottom, TandemSpacing.xl)
             }
-            .background(TandemColors.background)
-            .navigationTitle("Goals")
+            .background(TandemColors.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showNewGoal = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundColor(TandemColors.primary)
+                            .font(.system(size: 22))
+                            .foregroundColor(TandemColors.goalColor)
                     }
                 }
             }
@@ -54,71 +58,168 @@ struct GoalsView: View {
         }
     }
 
+    // MARK: - Header
+
+    private var goalsHeader: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: [
+                    TandemColors.goalColor.opacity(0.12),
+                    TandemColors.secondary.opacity(0.06),
+                    TandemColors.background,
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .frame(height: 120)
+
+            VStack(alignment: .leading, spacing: TandemSpacing.xs) {
+                Text("Savings Goals")
+                    .font(TandemFonts.largeTitle)
+                    .foregroundColor(TandemColors.textPrimary)
+
+                Text("\(goals.count) active goal\(goals.count == 1 ? "" : "s")")
+                    .font(TandemFonts.body)
+                    .foregroundColor(TandemColors.goalColor)
+            }
+            .padding(.horizontal, TandemSpacing.md)
+            .padding(.bottom, TandemSpacing.md)
+        }
+    }
+
+    // MARK: - Empty State
+
     private var emptyState: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "chart.bar.fill")
-                .font(.system(size: 48))
-                .foregroundColor(TandemColors.primary.opacity(0.5))
-            Text("Start Saving Together")
-                .font(.title2)
-                .fontWeight(.bold)
-            Text("Create shared savings goals and track your progress as a couple.")
-                .font(.subheadline)
-                .foregroundColor(TandemColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+        VStack(spacing: TandemSpacing.lg) {
+            Spacer().frame(height: TandemSpacing.xxl)
+
+            ZStack {
+                Circle()
+                    .fill(TandemColors.goalColor.opacity(0.12))
+                    .frame(width: 100, height: 100)
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 44))
+                    .foregroundColor(TandemColors.goalColor)
+            }
+
+            VStack(spacing: TandemSpacing.sm) {
+                Text("Start Saving Together")
+                    .font(TandemFonts.title)
+                    .foregroundColor(TandemColors.textPrimary)
+
+                Text("Create shared savings goals and track your progress as a couple.")
+                    .font(TandemFonts.body)
+                    .foregroundColor(TandemColors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, TandemSpacing.lg)
+            }
+
             Button {
                 showNewGoal = true
             } label: {
                 Text("Create First Goal")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(TandemColors.primary)
+                    .font(TandemFonts.headline)
                     .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, TandemSpacing.md)
+                    .background(
+                        LinearGradient(
+                            colors: [TandemColors.goalColor, TandemColors.secondary],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .cornerRadius(TandemCornerRadius.button)
+                    .shadow(
+                        color: TandemColors.goalColor.opacity(0.3),
+                        radius: 8, x: 0, y: 4
+                    )
             }
-            .padding(.horizontal, 40)
+            .padding(.horizontal, TandemSpacing.xl)
         }
-        .padding(.top, 40)
     }
+
+    // MARK: - New Goal Sheet
 
     private var newGoalSheet: some View {
         NavigationStack {
-            Form {
-                Section("Goal Details") {
-                    HStack {
-                        Text("Emoji")
-                        Spacer()
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack {
-                                ForEach(emojiOptions, id: \.self) { emoji in
-                                    Button(emoji) {
-                                        newEmoji = emoji
-                                    }
-                                    .font(.title2)
-                                    .padding(6)
-                                    .background(newEmoji == emoji ? TandemColors.primary.opacity(0.2) : Color.clear)
-                                    .cornerRadius(8)
+            ScrollView {
+                VStack(alignment: .leading, spacing: TandemSpacing.lg) {
+                    // Emoji picker
+                    VStack(alignment: .leading, spacing: TandemSpacing.sm) {
+                        Text("Choose an icon")
+                            .font(TandemFonts.headline)
+                            .foregroundColor(TandemColors.textPrimary)
+
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: TandemSpacing.sm) {
+                            ForEach(emojiOptions, id: \.self) { emoji in
+                                Button {
+                                    newEmoji = emoji
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                } label: {
+                                    Text(emoji)
+                                        .font(.system(size: 28))
+                                        .frame(width: 52, height: 52)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                                                .fill(newEmoji == emoji
+                                                      ? TandemColors.goalColor.opacity(0.15)
+                                                      : TandemColors.background)
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                                                .stroke(newEmoji == emoji ? TandemColors.goalColor : Color.clear, lineWidth: 2)
+                                        )
                                 }
                             }
                         }
                     }
-                    TextField("Goal name (e.g., Vacation Fund)", text: $newName)
-                    TextField("Target amount", text: $newTarget)
-                        .keyboardType(.decimalPad)
+
+                    // Goal name
+                    VStack(alignment: .leading, spacing: TandemSpacing.xs) {
+                        Text("Goal name")
+                            .font(TandemFonts.captionBold)
+                            .foregroundColor(TandemColors.textSecondary)
+                        TextField("e.g., Vacation Fund", text: $newName)
+                            .font(TandemFonts.body)
+                            .padding(TandemSpacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                                    .fill(TandemColors.background)
+                            )
+                    }
+
+                    // Target amount
+                    VStack(alignment: .leading, spacing: TandemSpacing.xs) {
+                        Text("Target amount")
+                            .font(TandemFonts.captionBold)
+                            .foregroundColor(TandemColors.textSecondary)
+                        TextField("$0", text: $newTarget)
+                            .font(TandemFonts.title)
+                            .keyboardType(.decimalPad)
+                            .padding(TandemSpacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                                    .fill(TandemColors.background)
+                            )
+                    }
                 }
+                .padding(TandemSpacing.md)
             }
+            .background(TandemColors.cardBackground)
             .navigationTitle("New Goal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { showNewGoal = false }
+                        .foregroundColor(TandemColors.textSecondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         Task { await createGoal() }
                     }
+                    .fontWeight(.semibold)
+                    .foregroundColor(TandemColors.goalColor)
                     .disabled(newName.isEmpty || newTarget.isEmpty)
                 }
             }
@@ -126,51 +227,84 @@ struct GoalsView: View {
         .presentationDetents([.medium])
     }
 
+    // MARK: - Contribute Sheet
+
     private var contributeSheet: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            VStack(spacing: TandemSpacing.lg) {
                 if let goal = selectedGoal {
+                    Spacer().frame(height: TandemSpacing.md)
+
                     Text(goal.emoji)
-                        .font(.system(size: 48))
+                        .font(.system(size: 56))
+
                     Text(goal.name)
-                        .font(.headline)
+                        .font(TandemFonts.title)
+                        .foregroundColor(TandemColors.textPrimary)
+
                     Text("$\(Int(goal.currentAmount)) / $\(Int(goal.targetAmount))")
+                        .font(TandemFonts.callout)
                         .foregroundColor(TandemColors.textSecondary)
 
-                    TextField("Amount", text: $contributeAmount)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.title2)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
+                    VStack(spacing: TandemSpacing.sm) {
+                        Text("Amount to add")
+                            .font(TandemFonts.captionBold)
+                            .foregroundColor(TandemColors.textSecondary)
+
+                        TextField("$0", text: $contributeAmount)
+                            .keyboardType(.decimalPad)
+                            .font(TandemFonts.largeTitle)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(TandemColors.goalColor)
+                            .padding(TandemSpacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: TandemCornerRadius.button)
+                                    .fill(TandemColors.goalColor.opacity(0.08))
+                            )
+                            .padding(.horizontal, TandemSpacing.xl)
+                    }
 
                     Button {
                         Task { await contribute() }
                     } label: {
                         Text("Add Contribution")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(TandemColors.primary)
+                            .font(TandemFonts.headline)
                             .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, TandemSpacing.md)
+                            .background(
+                                LinearGradient(
+                                    colors: [TandemColors.goalColor, TandemColors.secondary],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                             .cornerRadius(TandemCornerRadius.button)
+                            .shadow(
+                                color: TandemColors.goalColor.opacity(0.3),
+                                radius: 8, x: 0, y: 4
+                            )
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, TandemSpacing.md)
                     .disabled(contributeAmount.isEmpty)
+                    .opacity(contributeAmount.isEmpty ? 0.6 : 1.0)
                 }
                 Spacer()
             }
-            .padding(.top, 32)
+            .background(TandemColors.cardBackground.ignoresSafeArea())
             .navigationTitle("Contribute")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { showContribute = false }
+                        .foregroundColor(TandemColors.textSecondary)
                 }
             }
         }
         .presentationDetents([.medium])
     }
+
+    // MARK: - API Calls
 
     private func loadGoals() async {
         do {
@@ -191,7 +325,7 @@ struct GoalsView: View {
             goals.insert(result.goal, at: 0)
             newName = ""
             newTarget = ""
-            newEmoji = "💰"
+            newEmoji = "\u{1F4B0}"
             showNewGoal = false
         } catch {
             print("Failed to create goal: \(error)")
@@ -207,8 +341,7 @@ struct GoalsView: View {
             }
             contributeAmount = ""
             showContribute = false
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch {
             print("Failed to contribute: \(error)")
         }

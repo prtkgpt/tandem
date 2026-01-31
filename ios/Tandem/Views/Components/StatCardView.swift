@@ -4,27 +4,40 @@ struct StatCardView: View {
     let title: String
     let value: String
     let icon: String
+    var accentColor: Color = TandemColors.primary
 
     var body: some View {
         VStack(spacing: TandemSpacing.sm) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(TandemColors.primary)
+            ZStack {
+                Circle()
+                    .fill(accentColor.opacity(0.12))
+                    .frame(width: 40, height: 40)
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(accentColor)
+            }
 
             Text(value)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
                 .foregroundColor(TandemColors.textPrimary)
 
             Text(title)
-                .font(TandemFonts.caption)
+                .font(TandemFonts.micro)
                 .foregroundColor(TandemColors.textSecondary)
                 .multilineTextAlignment(.center)
+                .lineLimit(2)
         }
         .frame(maxWidth: .infinity)
-        .padding(TandemSpacing.md)
+        .padding(.vertical, TandemSpacing.md)
+        .padding(.horizontal, TandemSpacing.sm)
         .background(TandemColors.cardBackground)
         .cornerRadius(TandemCornerRadius.card)
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+        .shadow(
+            color: TandemShadow.card.color,
+            radius: TandemShadow.card.radius,
+            x: TandemShadow.card.x,
+            y: TandemShadow.card.y
+        )
     }
 }
 
@@ -35,19 +48,22 @@ struct StatCardView: View {
         StatCardView(
             title: "Together",
             value: "42",
-            icon: "calendar.badge.clock"
+            icon: "heart.fill",
+            accentColor: TandemColors.primary
         )
 
         StatCardView(
             title: "Appreciations",
             value: "18",
-            icon: "heart.fill"
+            icon: "sparkle",
+            accentColor: TandemColors.appreciationColor
         )
 
         StatCardView(
             title: "Date Nights",
             value: "6",
-            icon: "sparkles"
+            icon: "sparkles",
+            accentColor: TandemColors.dateNightColor
         )
     }
     .padding()

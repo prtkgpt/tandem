@@ -50,7 +50,7 @@ struct GoalCardView: View {
                         Capsule()
                             .fill(
                                 LinearGradient(
-                                    colors: [TandemColors.primary, TandemColors.accent],
+                                    colors: [TandemColors.goalColor, TandemColors.secondary],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -64,14 +64,14 @@ struct GoalCardView: View {
                     ZStack(alignment: .leading) {
                         // Track
                         Capsule()
-                            .fill(Color.gray.opacity(0.12))
+                            .fill(TandemColors.goalColor.opacity(0.12))
                             .frame(height: 10)
 
                         // Fill
                         Capsule()
                             .fill(
                                 LinearGradient(
-                                    colors: [TandemColors.primary, TandemColors.accent],
+                                    colors: [TandemColors.goalColor, TandemColors.secondary],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -87,8 +87,7 @@ struct GoalCardView: View {
                 // Amount labels
                 HStack {
                     Text(currentFormatted)
-                        .font(TandemFonts.caption)
-                        .fontWeight(.semibold)
+                        .font(TandemFonts.captionBold)
                         .foregroundColor(TandemColors.textPrimary)
 
                     Spacer()
@@ -109,20 +108,16 @@ struct GoalCardView: View {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 16))
                     Text("Add")
-                        .font(TandemFonts.body)
-                        .fontWeight(.semibold)
+                        .font(TandemFonts.callout)
                 }
-                .foregroundColor(TandemColors.primary)
+                .foregroundColor(TandemColors.goalColor)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, TandemSpacing.sm)
-                .background(TandemColors.primary.opacity(0.08))
+                .background(TandemColors.goalColor.opacity(0.10))
                 .cornerRadius(TandemCornerRadius.button)
             }
         }
-        .padding(TandemSpacing.md)
-        .background(TandemColors.cardBackground)
-        .cornerRadius(TandemCornerRadius.card)
-        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
+        .sectionCard(color: TandemColors.goalColor)
         .onAppear {
             withAnimation(.spring(response: 0.8, dampingFraction: 0.75).delay(0.1)) {
                 animatedProgress = progress
