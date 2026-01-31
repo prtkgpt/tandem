@@ -286,7 +286,7 @@ class APIService {
     func getStats() async throws -> CoupleStats {
         let wrapper: StatsWrapper = try await request(
             method: "GET",
-            path: "/api/stats"
+            path: "/api/us/stats"
         )
         return wrapper.stats
     }

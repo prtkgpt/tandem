@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const partnerName = coupleRecord.users[0]?.name ?? null;
+    const partnerName = coupleRecord.users[0]?.name ?? "Partner";
 
     return NextResponse.json({
       stats: {

@@ -102,11 +102,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
-      couple: {
-        id: couple.id,
-        trialEndsAt: couple.trialEndsAt,
-        createdAt: couple.createdAt,
-      },
+      coupleId: couple.id,
       partnerName: sender.name,
     });
   } catch (error) {

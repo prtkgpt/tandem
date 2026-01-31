@@ -39,12 +39,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       topic: {
         id: topic.id,
+        questionText: topic.question.text,
+        category: topic.question.category,
         askedDate: topic.askedDate,
-        question: {
-          id: topic.question.id,
-          text: topic.question.text,
-          category: topic.question.category,
-        },
         responses: topic.responses.map((r) => ({
           id: r.id,
           userId: r.userId,

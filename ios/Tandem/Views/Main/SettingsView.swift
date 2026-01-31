@@ -42,7 +42,7 @@ struct SettingsView: View {
                                     )
                                 )
                                 .frame(width: 56, height: 56)
-                            Text(String(appViewModel.currentUser?.name.prefix(1) ?? "?").uppercased())
+                            Text(String((appViewModel.currentUser?.name ?? "?").prefix(1)).uppercased())
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)

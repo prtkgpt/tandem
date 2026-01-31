@@ -93,7 +93,7 @@ struct TodayView: View {
                 .foregroundColor(TandemColors.textPrimary)
 
             if appViewModel.isPaired {
-                Text("How are you and \(appViewModel.partnerName) today?")
+                Text("How are you and \(appViewModel.partnerName ?? "your partner") today?")
                     .font(TandemFonts.body)
                     .foregroundColor(TandemColors.textSecondary)
             }
@@ -253,7 +253,7 @@ struct TodayView: View {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: TandemColors.accent))
                     .scaleEffect(0.8)
-                Text("Waiting for \(appViewModel.partnerName)...")
+                Text("Waiting for \(appViewModel.partnerName ?? "your partner")...")
                     .font(TandemFonts.body)
                     .foregroundColor(TandemColors.textSecondary)
             }
@@ -308,7 +308,7 @@ struct TodayView: View {
                     .foregroundColor(TandemColors.textPrimary)
             }
 
-            Text("Send a quick appreciation to \(appViewModel.partnerName)")
+            Text("Send a quick appreciation to \(appViewModel.partnerName ?? "your partner")")
                 .font(TandemFonts.caption)
                 .foregroundColor(TandemColors.textSecondary)
 

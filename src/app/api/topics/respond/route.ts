@@ -79,12 +79,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       topic: {
         id: updatedTopic!.id,
+        questionText: updatedTopic!.question.text,
+        category: updatedTopic!.question.category,
         askedDate: updatedTopic!.askedDate,
-        question: {
-          id: updatedTopic!.question.id,
-          text: updatedTopic!.question.text,
-          category: updatedTopic!.question.category,
-        },
         responses: updatedTopic!.responses.map((r) => ({
           id: r.id,
           userId: r.userId,
