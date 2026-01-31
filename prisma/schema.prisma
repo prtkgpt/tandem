@@ -3,93 +3,206 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
+
+// ─── Auth & Users ──────────────────────────────────────────
 
 model User {
-  id         String   @id @default(cuid())
-  email      String   @unique
-  name       String
-  password   String
-  inviteCode String?  @unique
-  coupleId   String?
-  couple     Couple?  @relation(fields: [coupleId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String
+  password         String
+  coupleId         String?
+  couple           Couple?  @relation(fields: [coupleId], references: [id])
+  notificationHour Int      @default(18)
+  notificationMin  Int      @default(30)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  sentNotes Note[]     @relation("SentNotes")
-  moods     Mood[]
-  lists     List[]
-  events    Event[]
-  listItems ListItem[] @relation("CompletedBy")
+  invitesSent    PartnerInvite[] @relation("InviteSender")
+  topicResponses TopicResponse[]
+  appreciations  Appreciation[]
+  timeLogs       OurTime[]
+  dateIdeas      DateIdea[]
+  contributions  GoalContribution[]
+
+  @@index([coupleId])
+  @@index([email])
 }
+
+model PartnerInvite {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  senderId  String
+  sender    User     @relation("InviteSender", fields: [senderId], references: [id])
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([code])
+}
+
+// ─── Couple ────────────────────────────────────────────────
 
 model Couple {
-  id          String    @id @default(cuid())
-  anniversary DateTime?
-  createdAt   DateTime  @default(now())
+  id                    String    @id @default(cuid())
+  relationshipStartDate DateTime?
+  weeklyGoalHours       Int       @default(7)
+  lastTopicCategory     String    @default("Dreams")
+  subscriptionStatus    String    @default("trial")
+  trialEndsAt           DateTime?
+  createdAt             DateTime  @default(now())
 
-  users  User[]
-  notes  Note[]
-  lists  List[]
-  events Event[]
+  users           User[]
+  topics          TableTopic[]
+  appreciations   Appreciation[]
+  timeLogs        OurTime[]
+  dateNights      DateNight[]
+  goals           SavingsGoal[]
+  weeklySummaries WeeklySummary[]
 }
 
-model Note {
-  id        String   @id @default(cuid())
-  content   String
-  emoji     String   @default("💌")
-  authorId  String
-  author    User     @relation("SentNotes", fields: [authorId], references: [id])
-  coupleId  String
-  couple    Couple   @relation(fields: [coupleId], references: [id])
-  createdAt DateTime @default(now())
+// ─── Table Topics ──────────────────────────────────────────
+
+model Question {
+  id       String @id @default(cuid())
+  text     String
+  category String
+
+  topics TableTopic[]
+
+  @@index([category])
 }
 
-model List {
+model TableTopic {
+  id         String   @id @default(cuid())
+  coupleId   String
+  couple     Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  askedDate  DateTime @default(now()) @db.Date
+
+  responses TopicResponse[]
+
+  @@unique([coupleId, askedDate])
+  @@index([coupleId])
+}
+
+model TopicResponse {
   id        String     @id @default(cuid())
-  title     String
-  icon      String     @default("📝")
-  creatorId String
-  creator   User       @relation(fields: [creatorId], references: [id])
-  coupleId  String
-  couple    Couple     @relation(fields: [coupleId], references: [id])
-  items     ListItem[]
+  topicId   String
+  topic     TableTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  text      String
   createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+
+  @@unique([topicId, userId])
 }
 
-model ListItem {
-  id          String   @id @default(cuid())
-  content     String
-  completed   Boolean  @default(false)
-  completedById String?
-  completedBy User?    @relation("CompletedBy", fields: [completedById], references: [id])
-  listId      String
-  list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// ─── Appreciations ─────────────────────────────────────────
+
+model Appreciation {
+  id         String   @id @default(cuid())
+  coupleId   String
+  couple     Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  fromUserId String
+  fromUser   User     @relation(fields: [fromUserId], references: [id])
+  message    String
+  createdAt  DateTime @default(now())
+
+  @@index([coupleId, createdAt])
 }
 
-model Mood {
-  id        String   @id @default(cuid())
-  emoji     String
-  note      String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+// ─── Our Time ──────────────────────────────────────────────
+
+model OurTime {
+  id              String   @id @default(cuid())
+  coupleId        String
+  couple          Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  loggedByUserId  String
+  loggedBy        User     @relation(fields: [loggedByUserId], references: [id])
+  activityName    String
+  durationMinutes Int
+  date            DateTime @db.Date
+  createdAt       DateTime @default(now())
+
+  @@index([coupleId, date])
 }
 
-model Event {
-  id        String   @id @default(cuid())
-  title     String
-  date      DateTime
-  type      String   @default("date") // date, milestone, reminder, anniversary
-  emoji     String   @default("📅")
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  coupleId  String
-  couple    Couple   @relation(fields: [coupleId], references: [id])
-  createdAt DateTime @default(now())
+// ─── Date Nights ───────────────────────────────────────────
+
+model DateNight {
+  id            String    @id @default(cuid())
+  coupleId      String
+  couple        Couple    @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  status        String    @default("planning")
+  agreedIdea    String?
+  agreedBudget  Float?
+  scheduledDate DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  ideas DateIdea[]
+
+  @@index([coupleId, status])
+}
+
+model DateIdea {
+  id          String    @id @default(cuid())
+  dateNightId String
+  dateNight   DateNight @relation(fields: [dateNightId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  idea        String
+  budget      Float?
+  createdAt   DateTime  @default(now())
+}
+
+// ─── Savings Goals ─────────────────────────────────────────
+
+model SavingsGoal {
+  id            String   @id @default(cuid())
+  coupleId      String
+  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  name          String
+  targetAmount  Float
+  currentAmount Float    @default(0)
+  emoji         String   @default("💰")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  contributions GoalContribution[]
+
+  @@index([coupleId])
+}
+
+model GoalContribution {
+  id      String      @id @default(cuid())
+  goalId  String
+  goal    SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User        @relation(fields: [userId], references: [id])
+  amount  Float
+  addedAt DateTime    @default(now())
+}
+
+// ─── Weekly Summary ────────────────────────────────────────
+
+model WeeklySummary {
+  id                 String   @id @default(cuid())
+  coupleId           String
+  couple             Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  weekStartDate      DateTime @db.Date
+  totalTimeMinutes   Int
+  totalAppreciations Int
+  wins               String[]
+  nudge              String?
+  createdAt          DateTime @default(now())
+
+  @@unique([coupleId, weekStartDate])
+  @@index([coupleId])
 }

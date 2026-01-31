@@ -1,57 +1,48 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "./auth";
-import prisma from "./prisma";
+const CATEGORY_ROTATION = [
+  "Dreams",
+  "Money",
+  "Memories",
+  "Fun",
+  "Future",
+  "Gratitude",
+];
 
-export async function getCurrentUser() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      couple: {
-        include: {
-          users: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  return user;
+export function getNextCategory(lastCategory: string): string {
+  const idx = CATEGORY_ROTATION.indexOf(lastCategory);
+  return CATEGORY_ROTATION[(idx + 1) % CATEGORY_ROTATION.length];
 }
 
-export function getPartner(user: any) {
-  if (!user?.couple?.users) return null;
-  return user.couple.users.find((u: any) => u.id !== user.id) || null;
+export function getWeekStart(date: Date = new Date()): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day; // Sunday = 0
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
-export function generateInviteCode(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
+export function getWeekEnd(date: Date = new Date()): Date {
+  const start = getWeekStart(date);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return end;
 }
 
-export function daysSince(date: Date): number {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24));
+export function todayDate(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
-export function formatRelativeDate(date: Date): string {
-  const days = daysSince(date);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-  if (days < 365) return `${Math.floor(days / 30)} months ago`;
-  return `${Math.floor(days / 365)} years ago`;
+export function daysAgo(n: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export function daysBetween(a: Date, b: Date): number {
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return Math.floor((b.getTime() - a.getTime()) / msPerDay);
 }

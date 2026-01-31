@@ -37,3 +37,11 @@ next-env.d.ts
 # prisma
 prisma/*.db
 prisma/*.db-journal
+
+# iOS / Xcode
+ios/Tandem.xcodeproj/xcuserdata/
+ios/Tandem.xcworkspace/xcuserdata/
+ios/**/*.xcuserstate
+ios/build/
+ios/DerivedData/
+ios/Pods/
