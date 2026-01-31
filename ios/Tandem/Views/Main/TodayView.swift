@@ -3,185 +3,662 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject var appViewModel: AppViewModel
 
+    // MARK: - Topic State
+
     @State private var topic: TableTopic?
-    @State private var topicLoaded = false
+    @State private var responseText = ""
+    @State private var isLoadingTopic = true
+    @State private var isSubmittingResponse = false
+
+    // MARK: - Appreciation State
+
     @State private var appreciationText = ""
-    @State private var showTimeLogger = false
-    @State private var isSendingAppreciation = false
-    @State private var appreciationSent = false
+    @State private var isSubmittingAppreciation = false
+    @State private var showAppreciationSuccess = false
+
+    // MARK: - Log Time State
+
+    @State private var showLogTimeSheet = false
+
+    // MARK: - Error
+
+    @State private var errorMessage: String?
+
+    // MARK: - Computed Properties
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
-        let name = appViewModel.currentUser?.name ?? "there"
-        if hour < 12 { return "Good morning, \(name)" }
-        if hour < 17 { return "Good afternoon, \(name)" }
-        return "Good evening, \(name)"
+        let firstName = appViewModel.currentUser?.name
+            .components(separatedBy: " ").first ?? "there"
+        if hour < 12 {
+            return "Good morning, \(firstName)"
+        } else if hour < 17 {
+            return "Good afternoon, \(firstName)"
+        } else {
+            return "Good evening, \(firstName)"
+        }
+    }
+
+    private var currentUserId: String {
+        appViewModel.currentUser?.id ?? ""
+    }
+
+    private var userHasResponded: Bool {
+        topic?.responses.contains { $0.userId == currentUserId } ?? false
+    }
+
+    // MARK: - Body
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: TandemSpacing.lg) {
+                    greetingSection
+                    tableTopicCard
+                    appreciationSection
+                    logTimeSection
+                }
+                .padding(.horizontal, TandemSpacing.md)
+                .padding(.top, TandemSpacing.sm)
+                .padding(.bottom, TandemSpacing.xl)
+            }
+            .background(TandemColors.background.ignoresSafeArea())
+            .refreshable {
+                await loadTopic()
+            }
+            .task {
+                await loadTopic()
+            }
+            .sheet(isPresented: $showLogTimeSheet) {
+                LogTimeSheet()
+                    .environmentObject(appViewModel)
+            }
+            .alert("Something went wrong", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    // MARK: - Greeting Section
+
+    private var greetingSection: some View {
+        VStack(alignment: .leading, spacing: TandemSpacing.xs) {
+            Text(greeting)
+                .font(TandemFonts.largeTitle)
+                .foregroundColor(TandemColors.textPrimary)
+
+            if appViewModel.isPaired {
+                Text("How are you and \(appViewModel.partnerName) today?")
+                    .font(TandemFonts.body)
+                    .foregroundColor(TandemColors.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, TandemSpacing.md)
+    }
+
+    // MARK: - Table Topic Card
+
+    private var tableTopicCard: some View {
+        VStack(alignment: .leading, spacing: TandemSpacing.md) {
+            // Header
+            HStack {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .foregroundColor(TandemColors.primary)
+                Text("Table Topic")
+                    .font(TandemFonts.headline)
+                    .foregroundColor(TandemColors.textPrimary)
+                Spacer()
+                Text("Daily Question")
+                    .font(TandemFonts.caption)
+                    .foregroundColor(TandemColors.textSecondary)
+            }
+
+            if isLoadingTopic {
+                topicLoadingState
+            } else if let currentTopic = topic {
+                topicContent(currentTopic)
+            } else {
+                topicEmptyState
+            }
+        }
+        .tandemCard()
+    }
+
+    private var topicLoadingState: some View {
+        HStack {
+            Spacer()
+            VStack(spacing: TandemSpacing.sm) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: TandemColors.primary))
+                Text("Loading today's question...")
+                    .font(TandemFonts.caption)
+                    .foregroundColor(TandemColors.textSecondary)
+            }
+            Spacer()
+        }
+        .padding(.vertical, TandemSpacing.lg)
+    }
+
+    @ViewBuilder
+    private func topicContent(_ currentTopic: TableTopic) -> some View {
+        // Question text
+        Text(currentTopic.questionText)
+            .font(TandemFonts.title)
+            .foregroundColor(TandemColors.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+
+        // Category badge
+        Text(currentTopic.category.uppercased())
+            .font(TandemFonts.caption)
+            .fontWeight(.semibold)
+            .foregroundColor(TandemColors.secondary)
+            .padding(.horizontal, TandemSpacing.sm)
+            .padding(.vertical, TandemSpacing.xs)
+            .background(
+                Capsule().fill(TandemColors.secondary.opacity(0.12))
+            )
+
+        Divider()
+
+        // Conditional state
+        if currentTopic.bothResponded {
+            bothRespondedState(currentTopic)
+        } else if userHasResponded {
+            waitingForPartnerState
+        } else {
+            responseInputState(topicId: currentTopic.id)
+        }
+    }
+
+    private var topicEmptyState: some View {
+        VStack(spacing: TandemSpacing.sm) {
+            Image(systemName: "bubble.left.and.bubble.right")
+                .font(.system(size: 40))
+                .foregroundColor(TandemColors.textSecondary.opacity(0.4))
+            Text("No topic for today yet")
+                .font(TandemFonts.body)
+                .foregroundColor(TandemColors.textSecondary)
+            Text("Check back soon -- a new question drops daily!")
+                .font(TandemFonts.caption)
+                .foregroundColor(TandemColors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, TandemSpacing.lg)
+    }
+
+    // MARK: - Topic Response States
+
+    private func bothRespondedState(_ currentTopic: TableTopic) -> some View {
+        VStack(alignment: .leading, spacing: TandemSpacing.md) {
+            ForEach(currentTopic.responses) { response in
+                let isMine = response.userId == currentUserId
+                VStack(alignment: .leading, spacing: TandemSpacing.xs) {
+                    Text(isMine ? "You" : response.userName)
+                        .font(TandemFonts.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(isMine ? TandemColors.primary : TandemColors.secondary)
+
+                    Text(response.text)
+                        .font(TandemFonts.body)
+                        .foregroundColor(TandemColors.textPrimary)
+                }
+                .padding(TandemSpacing.sm)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                        .fill(isMine
+                              ? TandemColors.primary.opacity(0.08)
+                              : TandemColors.secondary.opacity(0.08))
+                )
+            }
+
+            HStack {
+                Spacer()
+                Label("Both answered!", systemImage: "checkmark.circle.fill")
+                    .font(TandemFonts.caption)
+                    .foregroundColor(TandemColors.secondary)
+                Spacer()
+            }
+        }
+    }
+
+    private var waitingForPartnerState: some View {
+        VStack(spacing: TandemSpacing.sm) {
+            // Show the user's own response
+            if let myResponse = topic?.responses.first(where: { $0.userId == currentUserId }) {
+                VStack(alignment: .leading, spacing: TandemSpacing.xs) {
+                    Text("Your answer")
+                        .font(TandemFonts.caption)
+                        .foregroundColor(TandemColors.textSecondary)
+                    Text(myResponse.text)
+                        .font(TandemFonts.body)
+                        .foregroundColor(TandemColors.textPrimary)
+                }
+                .padding(TandemSpacing.sm)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                        .fill(TandemColors.primary.opacity(0.08))
+                )
+            }
+
+            HStack(spacing: TandemSpacing.sm) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: TandemColors.accent))
+                    .scaleEffect(0.8)
+                Text("Waiting for \(appViewModel.partnerName)...")
+                    .font(TandemFonts.body)
+                    .foregroundColor(TandemColors.textSecondary)
+            }
+            .padding(.top, TandemSpacing.xs)
+        }
+    }
+
+    private func responseInputState(topicId: String) -> some View {
+        VStack(spacing: TandemSpacing.sm) {
+            TextField("Share your thoughts...", text: $responseText, axis: .vertical)
+                .font(TandemFonts.body)
+                .lineLimit(3...6)
+                .textFieldStyle(.plain)
+                .padding(TandemSpacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                        .fill(TandemColors.background)
+                )
+
+            Button {
+                Task { await submitResponse(topicId: topicId) }
+            } label: {
+                HStack(spacing: TandemSpacing.sm) {
+                    if isSubmittingResponse {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.8)
+                    }
+                    Text(isSubmittingResponse ? "Sending..." : "Share Answer")
+                }
+                .tandemButton()
+            }
+            .disabled(
+                responseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || isSubmittingResponse
+            )
+            .opacity(
+                responseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0
+            )
+        }
+    }
+
+    // MARK: - Appreciation Section
+
+    private var appreciationSection: some View {
+        VStack(alignment: .leading, spacing: TandemSpacing.sm) {
+            HStack {
+                Image(systemName: "heart.text.square.fill")
+                    .foregroundColor(TandemColors.accent)
+                Text("Today I Noticed...")
+                    .font(TandemFonts.headline)
+                    .foregroundColor(TandemColors.textPrimary)
+            }
+
+            Text("Send a quick appreciation to \(appViewModel.partnerName)")
+                .font(TandemFonts.caption)
+                .foregroundColor(TandemColors.textSecondary)
+
+            HStack(spacing: TandemSpacing.sm) {
+                TextField("Something you appreciate...", text: $appreciationText, axis: .vertical)
+                    .font(TandemFonts.body)
+                    .lineLimit(1...3)
+                    .textFieldStyle(.plain)
+
+                Button {
+                    Task { await submitAppreciation() }
+                } label: {
+                    Group {
+                        if isSubmittingAppreciation {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: showAppreciationSuccess
+                                  ? "checkmark" : "paperplane.fill")
+                        }
+                    }
+                    .frame(width: 44, height: 44)
+                    .background(
+                        appreciationText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            ? TandemColors.textSecondary.opacity(0.3)
+                            : TandemColors.primary
+                    )
+                    .foregroundColor(.white)
+                    .clipShape(Circle())
+                }
+                .disabled(
+                    appreciationText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || isSubmittingAppreciation
+                )
+            }
+            .padding(TandemSpacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                    .fill(TandemColors.background)
+            )
+
+            HStack {
+                Text("\(appreciationText.count)/200")
+                    .font(TandemFonts.caption)
+                    .foregroundColor(
+                        appreciationText.count > 180
+                            ? TandemColors.primary : TandemColors.textSecondary
+                    )
+
+                Spacer()
+
+                if showAppreciationSuccess {
+                    HStack(spacing: TandemSpacing.xs) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(TandemColors.secondary)
+                        Text("Sent with love!")
+                            .font(TandemFonts.caption)
+                            .foregroundColor(TandemColors.secondary)
+                    }
+                    .transition(.opacity.combined(with: .scale))
+                }
+            }
+        }
+        .tandemCard()
+        .onChange(of: appreciationText) { newValue in
+            if newValue.count > 200 {
+                appreciationText = String(newValue.prefix(200))
+            }
+        }
+    }
+
+    // MARK: - Log Time Section
+
+    private var logTimeSection: some View {
+        Button {
+            showLogTimeSheet = true
+        } label: {
+            HStack(spacing: TandemSpacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(TandemColors.secondary.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(TandemColors.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: TandemSpacing.xs) {
+                    Text("Log Our Time")
+                        .font(TandemFonts.headline)
+                        .foregroundColor(TandemColors.textPrimary)
+                    Text("How was your time together?")
+                        .font(TandemFonts.caption)
+                        .foregroundColor(TandemColors.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(TandemFonts.body)
+                    .foregroundColor(TandemColors.textSecondary.opacity(0.6))
+            }
+        }
+        .tandemCard()
+    }
+
+    // MARK: - API Calls
+
+    private func loadTopic() async {
+        isLoadingTopic = true
+        do {
+            let wrapper = try await APIService.shared.getTodayTopic()
+            withAnimation {
+                topic = wrapper.topic
+                isLoadingTopic = false
+            }
+        } catch {
+            withAnimation { isLoadingTopic = false }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func submitResponse(topicId: String) async {
+        let text = responseText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+
+        isSubmittingResponse = true
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+
+        do {
+            let wrapper = try await APIService.shared.respondToTopic(topicId: topicId, text: text)
+            generator.impactOccurred()
+            withAnimation {
+                topic = wrapper.topic
+                responseText = ""
+                isSubmittingResponse = false
+            }
+        } catch {
+            isSubmittingResponse = false
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func submitAppreciation() async {
+        let text = appreciationText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, text.count <= 200 else { return }
+
+        isSubmittingAppreciation = true
+        let generator = UIImpactFeedbackGenerator(style: .light)
+
+        do {
+            _ = try await APIService.shared.createAppreciation(message: text)
+            generator.impactOccurred()
+            withAnimation {
+                appreciationText = ""
+                isSubmittingAppreciation = false
+                showAppreciationSuccess = true
+            }
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            withAnimation { showAppreciationSuccess = false }
+        } catch {
+            isSubmittingAppreciation = false
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Log Time Sheet
+
+struct LogTimeSheet: View {
+    @EnvironmentObject var appViewModel: AppViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selectedActivity = ""
+    @State private var customActivity = ""
+    @State private var durationMinutes: Double = 60
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+
+    private let quickPicks: [(name: String, icon: String)] = [
+        ("Dinner", "fork.knife"),
+        ("Walk", "figure.walk"),
+        ("Movie Night", "tv"),
+        ("Cooking", "frying.pan"),
+        ("Talk", "bubble.left.and.bubble.right"),
+    ]
+
+    private var activityName: String {
+        if !selectedActivity.isEmpty { return selectedActivity }
+        return customActivity.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var durationLabel: String {
+        let hours = Int(durationMinutes) / 60
+        let mins = Int(durationMinutes) % 60
+        if hours > 0 && mins > 0 { return "\(hours)h \(mins)m" }
+        if hours > 0 { return "\(hours)h" }
+        return "\(mins)m"
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
-                    // Greeting
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(greeting)
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(Theme.textPrimary)
-                        if let partner = appViewModel.partnerName {
-                            Text("You & \(partner)")
-                                .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
+                VStack(alignment: .leading, spacing: TandemSpacing.lg) {
+                    // MARK: Activity Selection
+                    VStack(alignment: .leading, spacing: TandemSpacing.sm) {
+                        Text("What did you do together?")
+                            .font(TandemFonts.headline)
+                            .foregroundColor(TandemColors.textPrimary)
 
-                    // Table Topic
-                    TopicCardView(
-                        topic: topic,
-                        currentUserId: appViewModel.currentUser?.id ?? "",
-                        partnerName: appViewModel.partnerName ?? "Partner",
-                        onRespond: { text in
-                            Task { await respondToTopic(text: text) }
-                        }
-                    )
-                    .padding(.horizontal)
-
-                    // Today I Noticed
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Today I Noticed...")
-                            .font(.headline)
-                            .foregroundColor(Theme.textPrimary)
-
-                        HStack(spacing: 12) {
-                            TextField(
-                                "Something I appreciate about you...",
-                                text: $appreciationText,
-                                axis: .vertical
-                            )
-                            .textFieldStyle(.plain)
-                            .padding(12)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(12)
-                            .lineLimit(1...3)
-
-                            Button {
-                                Task { await sendAppreciation() }
-                            } label: {
-                                if isSendingAppreciation {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else {
-                                    Image(systemName: appreciationSent ? "checkmark" : "arrow.up.circle.fill")
-                                        .font(.title2)
+                        LazyVGrid(
+                            columns: [GridItem(.flexible()), GridItem(.flexible())],
+                            spacing: TandemSpacing.sm
+                        ) {
+                            ForEach(quickPicks, id: \.name) { pick in
+                                Button {
+                                    withAnimation(.spring(response: 0.3)) {
+                                        selectedActivity = pick.name
+                                        customActivity = ""
+                                    }
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                } label: {
+                                    HStack(spacing: TandemSpacing.sm) {
+                                        Image(systemName: pick.icon)
+                                        Text(pick.name)
+                                    }
+                                    .font(TandemFonts.body)
+                                    .foregroundColor(
+                                        selectedActivity == pick.name
+                                            ? .white : TandemColors.textPrimary
+                                    )
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, TandemSpacing.sm)
+                                    .padding(.horizontal, TandemSpacing.md)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: TandemCornerRadius.button)
+                                            .fill(
+                                                selectedActivity == pick.name
+                                                    ? TandemColors.primary
+                                                    : TandemColors.cardBackground
+                                            )
+                                    )
+                                    .shadow(
+                                        color: Color.black.opacity(0.04),
+                                        radius: 4, x: 0, y: 1
+                                    )
                                 }
                             }
-                            .frame(width: 44, height: 44)
-                            .background(Theme.primary)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                            .disabled(appreciationText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSendingAppreciation)
                         }
 
-                        if appreciationSent {
-                            Text("Sent with love!")
-                                .font(.caption)
-                                .foregroundColor(Theme.primary)
-                                .transition(.opacity)
-                        }
+                        TextField("Or type something custom...", text: $customActivity)
+                            .font(TandemFonts.body)
+                            .padding(TandemSpacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                                    .fill(TandemColors.cardBackground)
+                            )
+                            .onChange(of: customActivity) { newValue in
+                                if !newValue.isEmpty { selectedActivity = "" }
+                            }
                     }
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(Theme.cardRadius)
-                    .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
-                    .padding(.horizontal)
 
-                    // Log Our Time
-                    Button {
-                        showTimeLogger = true
-                    } label: {
+                    // MARK: Duration Slider
+                    VStack(alignment: .leading, spacing: TandemSpacing.sm) {
                         HStack {
-                            Image(systemName: "clock.fill")
-                            Text("Log Our Time Together")
-                                .fontWeight(.semibold)
+                            Text("How long?")
+                                .font(TandemFonts.headline)
+                                .foregroundColor(TandemColors.textPrimary)
+                            Spacer()
+                            Text(durationLabel)
+                                .font(TandemFonts.title)
+                                .foregroundColor(TandemColors.primary)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Theme.secondary.opacity(0.15))
-                        .foregroundColor(Theme.secondary)
-                        .cornerRadius(Theme.buttonRadius)
+
+                        Slider(value: $durationMinutes, in: 15...240, step: 15)
+                            .tint(TandemColors.primary)
+
+                        HStack {
+                            Text("15 min")
+                                .font(TandemFonts.caption)
+                                .foregroundColor(TandemColors.textSecondary)
+                            Spacer()
+                            Text("4 hours")
+                                .font(TandemFonts.caption)
+                                .foregroundColor(TandemColors.textSecondary)
+                        }
                     }
-                    .padding(.horizontal)
+
+                    // MARK: Submit Button
+                    Button {
+                        Task { await submitLog() }
+                    } label: {
+                        HStack(spacing: TandemSpacing.sm) {
+                            if isSubmitting {
+                                ProgressView()
+                                    .progressViewStyle(
+                                        CircularProgressViewStyle(tint: .white)
+                                    )
+                                    .scaleEffect(0.8)
+                            }
+                            Text(isSubmitting ? "Logging..." : "Log Time Together")
+                        }
+                        .tandemButton()
+                    }
+                    .disabled(activityName.isEmpty || isSubmitting)
+                    .opacity(activityName.isEmpty ? 0.6 : 1.0)
                 }
-                .padding(.vertical)
+                .padding(TandemSpacing.md)
             }
-            .background(Theme.background)
-            .refreshable { await loadTopic() }
-            .task { await loadTopic() }
-            .sheet(isPresented: $showTimeLogger) {
-                TimeLoggerSheet(
-                    onSubmit: { activity, duration, date in
-                        Task { await logTime(activity: activity, duration: duration, date: date) }
-                    },
-                    onDismiss: { showTimeLogger = false }
-                )
-            }
-            .navigationTitle("")
+            .background(TandemColors.background.ignoresSafeArea())
+            .navigationTitle("Log Our Time")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(TandemColors.primary)
+                }
+            }
+            .alert("Something went wrong", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
         }
     }
 
-    private func loadTopic() async {
-        do {
-            let result = try await APIService.shared.getTodayTopic()
-            topic = result.topic
-            topicLoaded = true
-        } catch {
-            topicLoaded = true
-        }
-    }
+    private func submitLog() async {
+        guard !activityName.isEmpty else { return }
+        isSubmitting = true
+        let generator = UIImpactFeedbackGenerator(style: .medium)
 
-    private func respondToTopic(text: String) async {
         do {
-            let result = try await APIService.shared.respondToTopic(text: text)
-            withAnimation { topic = result.topic }
-        } catch {
-            print("Failed to respond: \(error)")
-        }
-    }
-
-    private func sendAppreciation() async {
-        let message = appreciationText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !message.isEmpty else { return }
-        isSendingAppreciation = true
-        do {
-            _ = try await APIService.shared.createAppreciation(message: String(message.prefix(200)))
-            appreciationText = ""
-            withAnimation { appreciationSent = true }
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            withAnimation { appreciationSent = false }
-        } catch {
-            print("Failed to send appreciation: \(error)")
-        }
-        isSendingAppreciation = false
-    }
-
-    private func logTime(activity: String, duration: Int, date: Date) async {
-        do {
-            let formatter = ISO8601DateFormatter()
             _ = try await APIService.shared.logTime(
-                activityName: activity,
-                durationMinutes: duration,
-                date: formatter.string(from: date)
+                activityName: activityName,
+                durationMinutes: Int(durationMinutes)
             )
-            showTimeLogger = false
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
+            generator.impactOccurred()
+            dismiss()
         } catch {
-            print("Failed to log time: \(error)")
+            isSubmitting = false
+            errorMessage = error.localizedDescription
         }
     }
+}
+
+#Preview {
+    TodayView()
+        .environmentObject(AppViewModel())
 }
