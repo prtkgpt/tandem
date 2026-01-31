@@ -361,6 +361,78 @@ ALTER TABLE "Nudge" ADD CONSTRAINT "Nudge_coupleId_fkey"
 ALTER TABLE "Nudge" ADD CONSTRAINT "Nudge_fromUserId_fkey"
     FOREIGN KEY ("fromUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+-- ─── 8. OUR BOARD (Shared Responsibilities) ─────────────────────
+
+CREATE TABLE "BoardItem" (
+    "id" TEXT NOT NULL,
+    "coupleId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT 'life',
+    "emoji" TEXT NOT NULL DEFAULT '✨',
+    "createdByUserId" TEXT NOT NULL,
+    "claimedByUserId" TEXT,
+    "isComplete" BOOLEAN NOT NULL DEFAULT false,
+    "completedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "BoardItem_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX "BoardItem_coupleId_isComplete_idx" ON "BoardItem"("coupleId", "isComplete");
+
+ALTER TABLE "BoardItem" ADD CONSTRAINT "BoardItem_coupleId_fkey"
+    FOREIGN KEY ("coupleId") REFERENCES "Couple"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "BoardItem" ADD CONSTRAINT "BoardItem_createdByUserId_fkey"
+    FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE "BoardItem" ADD CONSTRAINT "BoardItem_claimedByUserId_fkey"
+    FOREIGN KEY ("claimedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- ─── 9. OUR MOMENTS (Shared Calendar) ──────────────────────────
+
+CREATE TABLE "CoupleEvent" (
+    "id" TEXT NOT NULL,
+    "coupleId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "emoji" TEXT NOT NULL DEFAULT '📅',
+    "eventDate" TIMESTAMP(3) NOT NULL,
+    "eventType" TEXT NOT NULL DEFAULT 'date',
+    "notes" TEXT,
+    "createdByUserId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "CoupleEvent_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX "CoupleEvent_coupleId_eventDate_idx" ON "CoupleEvent"("coupleId", "eventDate");
+
+ALTER TABLE "CoupleEvent" ADD CONSTRAINT "CoupleEvent_coupleId_fkey"
+    FOREIGN KEY ("coupleId") REFERENCES "Couple"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "CoupleEvent" ADD CONSTRAINT "CoupleEvent_createdByUserId_fkey"
+    FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- ─── 10. MOOD CHECK-IN ─────────────────────────────────────────
+
+CREATE TABLE "MoodCheckin" (
+    "id" TEXT NOT NULL,
+    "coupleId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "mood" TEXT NOT NULL,
+    "note" TEXT,
+    "date" DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "MoodCheckin_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX "MoodCheckin_userId_date_key" ON "MoodCheckin"("userId", "date");
+CREATE INDEX "MoodCheckin_coupleId_date_idx" ON "MoodCheckin"("coupleId", "date");
+
+ALTER TABLE "MoodCheckin" ADD CONSTRAINT "MoodCheckin_coupleId_fkey"
+    FOREIGN KEY ("coupleId") REFERENCES "Couple"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "MoodCheckin" ADD CONSTRAINT "MoodCheckin_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
 -- ═══════════════════════════════════════════════════════════════════
--- DONE! All 14 tables + indexes + foreign keys + 100 seed questions
+-- DONE! All 17 tables + indexes + foreign keys + 100 seed questions
 -- ═══════════════════════════════════════════════════════════════════

@@ -19,6 +19,9 @@ struct TandemColors {
     static let dateNightColor = Color(hex: "F59E0B")    // Amber
     static let goalColor = Color(hex: "10B981")         // Emerald
     static let nudgeColor = Color(hex: "A78BFA")        // Soft lavender
+    static let boardColor = Color(hex: "F97316")         // Warm orange
+    static let calendarColor = Color(hex: "6366F1")      // Indigo
+    static let moodColor = Color(hex: "F472B6")          // Rose pink
 
     // Surface colors for subtle backgrounds
     static let surfacePrimary = Color(hex: "FF6B6B").opacity(0.08)

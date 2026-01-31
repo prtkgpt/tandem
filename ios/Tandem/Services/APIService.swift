@@ -326,6 +326,81 @@ class APIService {
             path: "/api/nudge"
         )
     }
+
+    // MARK: - Board (Our Board)
+
+    func getBoardItems() async throws -> BoardItemsWrapper {
+        return try await request(
+            method: "GET",
+            path: "/api/board"
+        )
+    }
+
+    func createBoardItem(title: String, category: String, emoji: String) async throws -> BoardItemWrapper {
+        return try await request(
+            method: "POST",
+            path: "/api/board",
+            body: ["title": title, "category": category, "emoji": emoji]
+        )
+    }
+
+    func updateBoardItem(id: String, action: String) async throws -> BoardItemWrapper {
+        return try await request(
+            method: "PATCH",
+            path: "/api/board/\(id)",
+            body: ["action": action]
+        )
+    }
+
+    func deleteBoardItem(id: String) async throws -> DeleteResponse {
+        return try await request(
+            method: "DELETE",
+            path: "/api/board/\(id)"
+        )
+    }
+
+    // MARK: - Calendar (Our Moments)
+
+    func getEvents() async throws -> EventsWrapper {
+        return try await request(
+            method: "GET",
+            path: "/api/calendar"
+        )
+    }
+
+    func createEvent(title: String, emoji: String, eventDate: String, eventType: String, notes: String?) async throws -> EventWrapper {
+        var body: [String: Any] = [
+            "title": title,
+            "emoji": emoji,
+            "eventDate": eventDate,
+            "eventType": eventType,
+        ]
+        if let notes = notes { body["notes"] = notes }
+        return try await request(
+            method: "POST",
+            path: "/api/calendar",
+            body: body
+        )
+    }
+
+    // MARK: - Mood Check-in
+
+    func getTodayMoods() async throws -> MoodCheckinsWrapper {
+        return try await request(
+            method: "GET",
+            path: "/api/mood"
+        )
+    }
+
+    func checkInMood(mood: String, note: String? = nil) async throws -> MoodCheckinWrapper {
+        var body: [String: Any] = ["mood": mood]
+        if let note = note { body["note"] = note }
+        return try await request(
+            method: "POST",
+            path: "/api/mood",
+            body: body
+        )
+    }
 }
 
 // MARK: - Response Wrapper Structs
@@ -399,4 +474,32 @@ struct NudgeWrapper: Codable {
 
 struct NudgesWrapper: Codable {
     let nudges: [NudgeItem]
+}
+
+struct BoardItemsWrapper: Codable {
+    let items: [BoardItem]
+}
+
+struct BoardItemWrapper: Codable {
+    let item: BoardItem
+}
+
+struct DeleteResponse: Codable {
+    let success: Bool
+}
+
+struct EventsWrapper: Codable {
+    let events: [CoupleEvent]
+}
+
+struct EventWrapper: Codable {
+    let event: CoupleEvent
+}
+
+struct MoodCheckinsWrapper: Codable {
+    let checkins: [MoodCheckin]
+}
+
+struct MoodCheckinWrapper: Codable {
+    let checkin: MoodCheckin
 }

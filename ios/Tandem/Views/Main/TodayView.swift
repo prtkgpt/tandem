@@ -26,6 +26,20 @@ struct TodayView: View {
     @State private var isSendingNudge = false
     @State private var receivedNudge: NudgeItem?
 
+    // MARK: - Mood State
+
+    @State private var myMood: String?
+    @State private var partnerMood: MoodCheckin?
+    @State private var isCheckingMood = false
+
+    private let moodOptions: [(emoji: String, label: String)] = [
+        ("\u{1F60A}", "Great"),
+        ("\u{1F642}", "Good"),
+        ("\u{1F614}", "Meh"),
+        ("\u{1F622}", "Sad"),
+        ("\u{1F621}", "Stressed"),
+    ]
+
     // MARK: - Error
 
     @State private var errorMessage: String?
@@ -60,6 +74,7 @@ struct TodayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: TandemSpacing.lg) {
                     greetingHeader
+                    moodCheckinSection
                     nudgeSection
                     tableTopicCard
                     appreciationSection
@@ -71,10 +86,12 @@ struct TodayView: View {
             .refreshable {
                 await loadTopic()
                 await checkNudges()
+                await loadMoods()
             }
             .task {
                 await loadTopic()
                 await checkNudges()
+                await loadMoods()
             }
             .sheet(isPresented: $showLogTimeSheet) {
                 LogTimeSheet()
@@ -127,6 +144,67 @@ struct TodayView: View {
             .padding(.horizontal, TandemSpacing.md)
             .padding(.bottom, TandemSpacing.md)
         }
+    }
+
+    // MARK: - Mood Check-in Section
+
+    private var moodCheckinSection: some View {
+        VStack(alignment: .leading, spacing: TandemSpacing.sm) {
+            HStack {
+                Text("How are you feeling?")
+                    .font(TandemFonts.headline)
+                    .foregroundColor(TandemColors.textPrimary)
+
+                Spacer()
+
+                if let partnerCheckin = partnerMood {
+                    HStack(spacing: TandemSpacing.xs) {
+                        Text(partnerCheckin.mood)
+                            .font(.system(size: 18))
+                        Text(partnerCheckin.userName.components(separatedBy: " ").first ?? "Partner")
+                            .font(TandemFonts.caption)
+                            .foregroundColor(TandemColors.textSecondary)
+                    }
+                }
+            }
+
+            HStack(spacing: TandemSpacing.sm) {
+                ForEach(moodOptions, id: \.emoji) { option in
+                    Button {
+                        Task { await submitMood(option.emoji) }
+                    } label: {
+                        VStack(spacing: TandemSpacing.xxs) {
+                            Text(option.emoji)
+                                .font(.system(size: myMood == option.emoji ? 32 : 26))
+                            Text(option.label)
+                                .font(TandemFonts.micro)
+                                .foregroundColor(
+                                    myMood == option.emoji
+                                        ? TandemColors.moodColor
+                                        : TandemColors.textSecondary
+                                )
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, TandemSpacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                                .fill(myMood == option.emoji
+                                      ? TandemColors.moodColor.opacity(0.12)
+                                      : Color.clear)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: TandemCornerRadius.small)
+                                .stroke(myMood == option.emoji
+                                        ? TandemColors.moodColor.opacity(0.3)
+                                        : Color.clear, lineWidth: 1.5)
+                        )
+                    }
+                    .scaleEffect(myMood == option.emoji ? 1.05 : 1.0)
+                    .animation(.spring(response: 0.3), value: myMood)
+                }
+            }
+        }
+        .padding(.horizontal, TandemSpacing.md)
     }
 
     // MARK: - Nudge Section
@@ -604,6 +682,38 @@ struct TodayView: View {
             isSubmittingAppreciation = false
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func loadMoods() async {
+        guard appViewModel.isPaired else { return }
+        do {
+            let wrapper = try await APIService.shared.getTodayMoods()
+            for checkin in wrapper.checkins {
+                if checkin.userId == currentUserId {
+                    myMood = checkin.mood
+                } else {
+                    partnerMood = checkin
+                }
+            }
+        } catch {
+            // Silently fail
+        }
+    }
+
+    private func submitMood(_ mood: String) async {
+        guard !isCheckingMood else { return }
+        isCheckingMood = true
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        do {
+            _ = try await APIService.shared.checkInMood(mood: mood)
+            withAnimation(.spring(response: 0.3)) {
+                myMood = mood
+            }
+        } catch {
+            // Silently fail
+        }
+        isCheckingMood = false
     }
 }
 

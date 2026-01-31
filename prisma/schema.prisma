@@ -29,6 +29,10 @@ model User {
   dateIdeas      DateIdea[]
   contributions  GoalContribution[]
   sentNudges     Nudge[]            @relation("NudgeSender")
+  boardItemsCreated  BoardItem[]    @relation("BoardCreator")
+  boardItemsClaimed  BoardItem[]    @relation("BoardClaimer")
+  eventsCreated      CoupleEvent[]
+  moodCheckins       MoodCheckin[]
 
   @@index([coupleId])
   @@index([email])
@@ -65,6 +69,9 @@ model Couple {
   goals           SavingsGoal[]
   weeklySummaries WeeklySummary[]
   nudges          Nudge[]
+  boardItems      BoardItem[]
+  events          CoupleEvent[]
+  moodCheckins    MoodCheckin[]
 }
 
 // ─── Table Topics ──────────────────────────────────────────
@@ -224,4 +231,59 @@ model Nudge {
   fromUser User   @relation("NudgeSender", fields: [fromUserId], references: [id])
 
   @@index([coupleId, seen])
+}
+
+// ─── Our Board (Shared Responsibilities) ─────────────────────
+
+model BoardItem {
+  id            String    @id @default(cuid())
+  coupleId      String
+  couple        Couple    @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  title         String
+  category      String    @default("life")   // nest, wellness, adventure, life
+  emoji         String    @default("✨")
+  createdByUserId String
+  createdBy     User      @relation("BoardCreator", fields: [createdByUserId], references: [id])
+  claimedByUserId String?
+  claimedBy     User?     @relation("BoardClaimer", fields: [claimedByUserId], references: [id])
+  isComplete    Boolean   @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([coupleId, isComplete])
+}
+
+// ─── Our Moments (Shared Calendar) ───────────────────────────
+
+model CoupleEvent {
+  id            String   @id @default(cuid())
+  coupleId      String
+  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  title         String
+  emoji         String   @default("📅")
+  eventDate     DateTime
+  eventType     String   @default("date")  // date, anniversary, birthday, trip, activity, milestone
+  notes         String?
+  createdByUserId String
+  createdBy     User     @relation(fields: [createdByUserId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([coupleId, eventDate])
+}
+
+// ─── Mood Check-in ───────────────────────────────────────────
+
+model MoodCheckin {
+  id        String   @id @default(cuid())
+  coupleId  String
+  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  mood      String                            // emoji mood value
+  note      String?
+  date      DateTime @default(now()) @db.Date
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([coupleId, date])
 }
