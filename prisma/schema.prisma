@@ -28,6 +28,7 @@ model User {
   timeLogs       OurTime[]
   dateIdeas      DateIdea[]
   contributions  GoalContribution[]
+  sentNudges     Nudge[]            @relation("NudgeSender")
 
   @@index([coupleId])
   @@index([email])
@@ -63,6 +64,7 @@ model Couple {
   dateNights      DateNight[]
   goals           SavingsGoal[]
   weeklySummaries WeeklySummary[]
+  nudges          Nudge[]
 }
 
 // ─── Table Topics ──────────────────────────────────────────
@@ -205,4 +207,21 @@ model WeeklySummary {
 
   @@unique([coupleId, weekStartDate])
   @@index([coupleId])
+}
+
+// ─── Nudges (Thinking of You) ───────────────────────────────
+
+model Nudge {
+  id         String   @id @default(cuid())
+  coupleId   String
+  fromUserId String
+  emoji      String   @default("💭")
+  message    String   @default("is thinking of you")
+  seen       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  couple   Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  fromUser User   @relation("NudgeSender", fields: [fromUserId], references: [id])
+
+  @@index([coupleId, seen])
 }

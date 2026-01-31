@@ -310,6 +310,22 @@ class APIService {
             path: "/api/weekly-summary"
         )
     }
+
+    // MARK: - Nudge
+
+    func sendNudge() async throws -> NudgeWrapper {
+        return try await request(
+            method: "POST",
+            path: "/api/nudge"
+        )
+    }
+
+    func getUnseenNudges() async throws -> NudgesWrapper {
+        return try await request(
+            method: "GET",
+            path: "/api/nudge"
+        )
+    }
 }
 
 // MARK: - Response Wrapper Structs
@@ -367,4 +383,20 @@ private struct StatsWrapper: Codable {
 
 struct WeeklySummaryWrapper: Codable {
     let summary: WeeklySummary?
+}
+
+struct NudgeItem: Codable, Identifiable {
+    let id: String
+    let emoji: String
+    let message: String
+    let fromUserName: String
+    let createdAt: String
+}
+
+struct NudgeWrapper: Codable {
+    let nudge: NudgeItem
+}
+
+struct NudgesWrapper: Codable {
+    let nudges: [NudgeItem]
 }

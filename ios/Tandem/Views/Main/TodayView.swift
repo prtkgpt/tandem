@@ -20,6 +20,12 @@ struct TodayView: View {
 
     @State private var showLogTimeSheet = false
 
+    // MARK: - Nudge State
+
+    @State private var nudgeSent = false
+    @State private var isSendingNudge = false
+    @State private var receivedNudge: NudgeItem?
+
     // MARK: - Error
 
     @State private var errorMessage: String?
@@ -53,21 +59,22 @@ struct TodayView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: TandemSpacing.lg) {
-                    greetingSection
+                    greetingHeader
+                    nudgeSection
                     tableTopicCard
                     appreciationSection
                     logTimeSection
                 }
-                .padding(.horizontal, TandemSpacing.md)
-                .padding(.top, TandemSpacing.sm)
                 .padding(.bottom, TandemSpacing.xl)
             }
             .background(TandemColors.background.ignoresSafeArea())
             .refreshable {
                 await loadTopic()
+                await checkNudges()
             }
             .task {
                 await loadTopic()
+                await checkNudges()
             }
             .sheet(isPresented: $showLogTimeSheet) {
                 LogTimeSheet()
@@ -84,22 +91,110 @@ struct TodayView: View {
         }
     }
 
-    // MARK: - Greeting Section
+    // MARK: - Greeting Header (Vibrant Gradient)
 
-    private var greetingSection: some View {
-        VStack(alignment: .leading, spacing: TandemSpacing.xs) {
-            Text(greeting)
-                .font(TandemFonts.largeTitle)
-                .foregroundColor(TandemColors.textPrimary)
+    private var greetingHeader: some View {
+        ZStack(alignment: .bottomLeading) {
+            // Gradient background
+            LinearGradient(
+                colors: [
+                    TandemColors.primary.opacity(0.15),
+                    TandemColors.accent.opacity(0.08),
+                    TandemColors.background,
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .frame(height: 160)
 
+            VStack(alignment: .leading, spacing: TandemSpacing.xs) {
+                // Date
+                Text(Date(), format: .dateTime.weekday(.wide).month(.wide).day())
+                    .font(TandemFonts.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(TandemColors.primary)
+
+                Text(greeting)
+                    .font(TandemFonts.largeTitle)
+                    .foregroundColor(TandemColors.textPrimary)
+
+                if appViewModel.isPaired {
+                    Text("How are you and \(appViewModel.partnerName ?? "your partner") today?")
+                        .font(TandemFonts.body)
+                        .foregroundColor(TandemColors.textSecondary)
+                }
+            }
+            .padding(.horizontal, TandemSpacing.md)
+            .padding(.bottom, TandemSpacing.md)
+        }
+    }
+
+    // MARK: - Nudge Section
+
+    private var nudgeSection: some View {
+        VStack(spacing: TandemSpacing.sm) {
+            // Received nudge banner
+            if let nudge = receivedNudge {
+                HStack(spacing: TandemSpacing.sm) {
+                    Text(nudge.emoji)
+                        .font(.system(size: 24))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(nudge.fromUserName) \(nudge.message)")
+                            .font(TandemFonts.headline)
+                            .foregroundColor(TandemColors.textPrimary)
+                        Text("right now")
+                            .font(TandemFonts.caption)
+                            .foregroundColor(TandemColors.nudgeColor)
+                    }
+                    Spacer()
+                    Button {
+                        withAnimation(.spring()) { receivedNudge = nil }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(TandemColors.textSecondary.opacity(0.4))
+                    }
+                }
+                .padding(TandemSpacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: TandemCornerRadius.card)
+                        .fill(TandemColors.nudgeColor.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: TandemCornerRadius.card)
+                                .stroke(TandemColors.nudgeColor.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            // Send nudge button
             if appViewModel.isPaired {
-                Text("How are you and \(appViewModel.partnerName ?? "your partner") today?")
-                    .font(TandemFonts.body)
-                    .foregroundColor(TandemColors.textSecondary)
+                Button {
+                    Task { await sendNudge() }
+                } label: {
+                    HStack(spacing: TandemSpacing.sm) {
+                        Image(systemName: nudgeSent ? "checkmark.heart.fill" : "heart.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(nudgeSent ? TandemColors.secondary : TandemColors.nudgeColor)
+                        Text(nudgeSent ? "Sent!" : "Thinking of \(appViewModel.partnerName ?? "you")")
+                            .font(TandemFonts.callout)
+                            .foregroundColor(nudgeSent ? TandemColors.secondary : TandemColors.nudgeColor)
+                        Spacer()
+                        if isSendingNudge {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                        }
+                    }
+                    .padding(.horizontal, TandemSpacing.md)
+                    .padding(.vertical, TandemSpacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: TandemCornerRadius.button)
+                            .fill(nudgeSent ? TandemColors.secondary.opacity(0.08) : TandemColors.nudgeColor.opacity(0.08))
+                    )
+                }
+                .disabled(nudgeSent || isSendingNudge)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, TandemSpacing.md)
+        .padding(.horizontal, TandemSpacing.md)
     }
 
     // MARK: - Table Topic Card
@@ -450,6 +545,41 @@ struct TodayView: View {
         } catch {
             isSubmittingResponse = false
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func sendNudge() async {
+        isSendingNudge = true
+        do {
+            _ = try await APIService.shared.sendNudge()
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            withAnimation(.spring()) {
+                nudgeSent = true
+                isSendingNudge = false
+            }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            withAnimation { nudgeSent = false }
+        } catch {
+            isSendingNudge = false
+        }
+    }
+
+    private func checkNudges() async {
+        guard appViewModel.isPaired else { return }
+        do {
+            let wrapper = try await APIService.shared.getUnseenNudges()
+            if let latest = wrapper.nudges.first {
+                withAnimation(.spring()) {
+                    receivedNudge = latest
+                }
+                // Auto-dismiss after 8 seconds
+                try? await Task.sleep(nanoseconds: 8_000_000_000)
+                withAnimation(.spring()) {
+                    receivedNudge = nil
+                }
+            }
+        } catch {
+            // Silently fail — not critical
         }
     }
 

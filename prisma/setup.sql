@@ -340,6 +340,27 @@ INSERT INTO "Question" ("id", "text", "category") VALUES
 (gen_random_uuid()::text, 'What''s one thing about me that you''d never want to change?', 'Gratitude'),
 (gen_random_uuid()::text, 'What are you most thankful for about us right now, in this moment?', 'Gratitude');
 
+-- ─── 7. NUDGE TABLE (Thinking of You) ──────────────────────────────
+
+CREATE TABLE "Nudge" (
+    "id" TEXT NOT NULL,
+    "coupleId" TEXT NOT NULL,
+    "fromUserId" TEXT NOT NULL,
+    "emoji" TEXT NOT NULL DEFAULT '💭',
+    "message" TEXT NOT NULL DEFAULT 'is thinking of you',
+    "seen" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Nudge_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX "Nudge_coupleId_seen_idx" ON "Nudge"("coupleId", "seen");
+
+ALTER TABLE "Nudge" ADD CONSTRAINT "Nudge_coupleId_fkey"
+    FOREIGN KEY ("coupleId") REFERENCES "Couple"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "Nudge" ADD CONSTRAINT "Nudge_fromUserId_fkey"
+    FOREIGN KEY ("fromUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
 -- ═══════════════════════════════════════════════════════════════════
--- DONE! All 13 tables + indexes + foreign keys + 100 seed questions
+-- DONE! All 14 tables + indexes + foreign keys + 100 seed questions
 -- ═══════════════════════════════════════════════════════════════════
