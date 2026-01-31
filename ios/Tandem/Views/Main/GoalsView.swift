@@ -35,7 +35,7 @@ struct GoalsView: View {
                 }
                 .padding(.vertical)
             }
-            .background(Theme.background)
+            .background(TandemColors.background)
             .navigationTitle("Goals")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -43,7 +43,7 @@ struct GoalsView: View {
                         showNewGoal = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundColor(Theme.primary)
+                            .foregroundColor(TandemColors.primary)
                     }
                 }
             }
@@ -58,13 +58,13 @@ struct GoalsView: View {
         VStack(spacing: 20) {
             Image(systemName: "chart.bar.fill")
                 .font(.system(size: 48))
-                .foregroundColor(Theme.primary.opacity(0.5))
+                .foregroundColor(TandemColors.primary.opacity(0.5))
             Text("Start Saving Together")
                 .font(.title2)
                 .fontWeight(.bold)
             Text("Create shared savings goals and track your progress as a couple.")
                 .font(.subheadline)
-                .foregroundColor(Theme.textSecondary)
+                .foregroundColor(TandemColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
             Button {
@@ -74,9 +74,9 @@ struct GoalsView: View {
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Theme.primary)
+                    .background(TandemColors.primary)
                     .foregroundColor(.white)
-                    .cornerRadius(Theme.buttonRadius)
+                    .cornerRadius(TandemCornerRadius.button)
             }
             .padding(.horizontal, 40)
         }
@@ -98,7 +98,7 @@ struct GoalsView: View {
                                     }
                                     .font(.title2)
                                     .padding(6)
-                                    .background(newEmoji == emoji ? Theme.primary.opacity(0.2) : Color.clear)
+                                    .background(newEmoji == emoji ? TandemColors.primary.opacity(0.2) : Color.clear)
                                     .cornerRadius(8)
                                 }
                             }
@@ -135,7 +135,7 @@ struct GoalsView: View {
                     Text(goal.name)
                         .font(.headline)
                     Text("$\(Int(goal.currentAmount)) / $\(Int(goal.targetAmount))")
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundColor(TandemColors.textSecondary)
 
                     TextField("Amount", text: $contributeAmount)
                         .keyboardType(.decimalPad)
@@ -151,9 +151,9 @@ struct GoalsView: View {
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Theme.primary)
+                            .background(TandemColors.primary)
                             .foregroundColor(.white)
-                            .cornerRadius(Theme.buttonRadius)
+                            .cornerRadius(TandemCornerRadius.button)
                     }
                     .padding(.horizontal)
                     .disabled(contributeAmount.isEmpty)

@@ -34,7 +34,7 @@ struct UsView: View {
                         VStack(spacing: 12) {
                             Text("Our Time This Week")
                                 .font(.headline)
-                                .foregroundColor(Theme.textPrimary)
+                                .foregroundColor(TandemColors.textPrimary)
                             ProgressRingView(
                                 progress: weeklyProgress,
                                 lineWidth: 14,
@@ -45,7 +45,7 @@ struct UsView: View {
                         .padding()
                         .frame(maxWidth: .infinity)
                         .background(Color.white)
-                        .cornerRadius(Theme.cardRadius)
+                        .cornerRadius(TandemCornerRadius.card)
                         .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
                         .padding(.horizontal)
 
@@ -79,17 +79,17 @@ struct UsView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("This Week's Appreciations")
                                 .font(.headline)
-                                .foregroundColor(Theme.textPrimary)
+                                .foregroundColor(TandemColors.textPrimary)
                                 .padding(.horizontal)
 
                             if appreciations.isEmpty {
                                 Text("No appreciations this week yet. Notice something about your partner today!")
                                     .font(.subheadline)
-                                    .foregroundColor(Theme.textSecondary)
+                                    .foregroundColor(TandemColors.textSecondary)
                                     .padding()
                                     .frame(maxWidth: .infinity)
                                     .background(Color.white)
-                                    .cornerRadius(Theme.cardRadius)
+                                    .cornerRadius(TandemCornerRadius.card)
                                     .padding(.horizontal)
                             } else {
                                 ScrollView(.horizontal, showsIndicators: false) {
@@ -119,16 +119,16 @@ struct UsView: View {
                                 Image(systemName: "chevron.right")
                             }
                             .padding()
-                            .background(Theme.primary.opacity(0.1))
-                            .foregroundColor(Theme.primary)
-                            .cornerRadius(Theme.buttonRadius)
+                            .background(TandemColors.primary.opacity(0.1))
+                            .foregroundColor(TandemColors.primary)
+                            .cornerRadius(TandemCornerRadius.button)
                         }
                         .padding(.horizontal)
                     }
                 }
                 .padding(.vertical)
             }
-            .background(Theme.background)
+            .background(TandemColors.background)
             .navigationTitle("Us")
             .refreshable { await loadData() }
             .task { await loadData() }
@@ -143,12 +143,12 @@ struct UsView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "doc.text")
                             .font(.largeTitle)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundColor(TandemColors.textSecondary)
                         Text("No weekly summary yet")
                             .font(.headline)
                         Text("Check back after your first Sunday together!")
                             .font(.subheadline)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundColor(TandemColors.textSecondary)
                     }
                     .padding()
                     .presentationDetents([.medium])
@@ -167,7 +167,7 @@ struct UsView: View {
             let (s, a, t, ws) = try await (statsReq, appreciationsReq, timeReq, summaryReq)
             stats = s
             appreciations = a.appreciations
-            timeLogs = t.logs
+            timeLogs = t.timeLogs
             weeklySummary = ws.summary
         } catch {
             print("Failed to load Us data: \(error)")

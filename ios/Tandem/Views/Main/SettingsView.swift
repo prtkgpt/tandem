@@ -36,7 +36,7 @@ struct SettingsView: View {
                             Circle()
                                 .fill(
                                     LinearGradient(
-                                        colors: [Theme.primary, Theme.accent],
+                                        colors: [TandemColors.primary, TandemColors.accent],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -52,7 +52,7 @@ struct SettingsView: View {
                                 .font(.headline)
                             Text(appViewModel.currentUser?.email ?? "")
                                 .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundColor(TandemColors.textSecondary)
                         }
                     }
                     .padding(.vertical, 4)
@@ -63,7 +63,7 @@ struct SettingsView: View {
                     if appViewModel.isPaired, let partner = appViewModel.partnerName {
                         HStack {
                             Image(systemName: "heart.fill")
-                                .foregroundColor(Theme.primary)
+                                .foregroundColor(TandemColors.primary)
                             Text("Connected with \(partner)")
                             Spacer()
                             Image(systemName: "checkmark.circle.fill")
@@ -72,9 +72,9 @@ struct SettingsView: View {
                     } else {
                         HStack {
                             Image(systemName: "link")
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundColor(TandemColors.textSecondary)
                             Text("Not yet paired")
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundColor(TandemColors.textSecondary)
                         }
                     }
                 }
@@ -98,7 +98,7 @@ struct SettingsView: View {
                                 .fontWeight(.medium)
                             Text("$4.99/month after trial")
                                 .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundColor(TandemColors.textSecondary)
                         }
                     }
                 }
@@ -109,7 +109,7 @@ struct SettingsView: View {
                         Text("Version")
                         Spacer()
                         Text("0.1.0")
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundColor(TandemColors.textSecondary)
                     }
                 }
 

@@ -440,7 +440,7 @@ struct TodayView: View {
         let generator = UIImpactFeedbackGenerator(style: .medium)
 
         do {
-            let wrapper = try await APIService.shared.respondToTopic(topicId: topicId, text: text)
+            let wrapper = try await APIService.shared.respondToTopic(text: text)
             generator.impactOccurred()
             withAnimation {
                 topic = wrapper.topic

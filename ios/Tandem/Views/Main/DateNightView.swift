@@ -51,13 +51,13 @@ struct DateNightView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Past Date Nights")
                                 .font(.headline)
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundColor(TandemColors.textSecondary)
                                 .padding(.horizontal)
 
                             ForEach(pastDateNights) { dn in
                                 HStack {
                                     Image(systemName: "sparkles")
-                                        .foregroundColor(Theme.primary)
+                                        .foregroundColor(TandemColors.primary)
                                     VStack(alignment: .leading) {
                                         Text(dn.agreedIdea ?? "Date Night")
                                             .font(.subheadline)
@@ -65,14 +65,14 @@ struct DateNightView: View {
                                         if let date = dn.scheduledDate {
                                             Text(date)
                                                 .font(.caption)
-                                                .foregroundColor(Theme.textSecondary)
+                                                .foregroundColor(TandemColors.textSecondary)
                                         }
                                     }
                                     Spacer()
                                 }
                                 .padding()
                                 .background(Color.white)
-                                .cornerRadius(Theme.cardRadius)
+                                .cornerRadius(TandemCornerRadius.card)
                                 .padding(.horizontal)
                             }
                         }
@@ -80,7 +80,7 @@ struct DateNightView: View {
                 }
                 .padding(.vertical)
             }
-            .background(Theme.background)
+            .background(TandemColors.background)
             .navigationTitle("Date Night")
             .refreshable { await loadDateNights() }
             .task { await loadDateNights() }
@@ -97,23 +97,23 @@ struct DateNightView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "sparkles")
                         .font(.largeTitle)
-                        .foregroundColor(Theme.primary)
+                        .foregroundColor(TandemColors.primary)
                     Text("It's a date!")
                         .font(.title2)
                         .fontWeight(.bold)
                     Text(idea)
                         .font(.headline)
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundColor(TandemColors.textSecondary)
                     if let date = dateNight.scheduledDate {
                         Text(date)
                             .font(.subheadline)
-                            .foregroundColor(Theme.primary)
+                            .foregroundColor(TandemColors.primary)
                     }
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
                 .background(Color.white)
-                .cornerRadius(Theme.cardRadius)
+                .cornerRadius(TandemCornerRadius.card)
                 .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
                 .padding(.horizontal)
             }
@@ -127,13 +127,13 @@ struct DateNightView: View {
                             .font(.headline)
                         Text("Submit up to 3 ideas. Your partner won't see them until they submit theirs too!")
                             .font(.subheadline)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundColor(TandemColors.textSecondary)
 
                         ForEach(0..<3, id: \.self) { idx in
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Idea \(idx + 1)\(idx == 0 ? " *" : "")")
                                     .font(.caption)
-                                    .foregroundColor(Theme.textSecondary)
+                                    .foregroundColor(TandemColors.textSecondary)
                                 HStack {
                                     TextField("What should we do?", text: Binding(
                                         get: { newIdeas[idx].idea },
@@ -164,15 +164,15 @@ struct DateNightView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Theme.primary)
+                            .background(TandemColors.primary)
                             .foregroundColor(.white)
-                            .cornerRadius(Theme.buttonRadius)
+                            .cornerRadius(TandemCornerRadius.button)
                         }
                         .disabled(newIdeas[0].idea.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting)
                     }
                     .padding()
                     .background(Color.white)
-                    .cornerRadius(Theme.cardRadius)
+                    .cornerRadius(TandemCornerRadius.card)
                     .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
                     .padding(.horizontal)
                 } else if partnerIdeas.isEmpty {
@@ -183,13 +183,13 @@ struct DateNightView: View {
                             .font(.headline)
                         Text("You've submitted your ideas. Once they submit theirs, you'll see the matches!")
                             .font(.subheadline)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundColor(TandemColors.textSecondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(32)
                     .frame(maxWidth: .infinity)
                     .background(Color.white)
-                    .cornerRadius(Theme.cardRadius)
+                    .cornerRadius(TandemCornerRadius.card)
                     .padding(.horizontal)
                 } else {
                     // Both submitted — show all ideas
@@ -206,22 +206,22 @@ struct DateNightView: View {
                                     VStack(alignment: .leading) {
                                         Text(idea.idea)
                                             .fontWeight(.medium)
-                                            .foregroundColor(Theme.textPrimary)
+                                            .foregroundColor(TandemColors.textPrimary)
                                         HStack {
                                             Text("by \(idea.userId == currentUserId ? "You" : appViewModel.partnerName ?? "Partner")")
                                                 .font(.caption)
-                                                .foregroundColor(Theme.textSecondary)
+                                                .foregroundColor(TandemColors.textSecondary)
                                             if let budget = idea.budget {
                                                 Text("$\(Int(budget))")
                                                     .font(.caption)
                                                     .fontWeight(.semibold)
-                                                    .foregroundColor(Theme.primary)
+                                                    .foregroundColor(TandemColors.primary)
                                             }
                                         }
                                     }
                                     Spacer()
                                     Image(systemName: "checkmark.circle")
-                                        .foregroundColor(Theme.primary)
+                                        .foregroundColor(TandemColors.primary)
                                 }
                                 .padding()
                                 .background(Color(.systemGray6))
@@ -231,7 +231,7 @@ struct DateNightView: View {
                     }
                     .padding()
                     .background(Color.white)
-                    .cornerRadius(Theme.cardRadius)
+                    .cornerRadius(TandemCornerRadius.card)
                     .padding(.horizontal)
                 }
             }
@@ -244,13 +244,13 @@ struct DateNightView: View {
         VStack(spacing: 20) {
             Image(systemName: "sparkles")
                 .font(.system(size: 48))
-                .foregroundColor(Theme.primary.opacity(0.5))
+                .foregroundColor(TandemColors.primary.opacity(0.5))
             Text("Plan a Date Night")
                 .font(.title2)
                 .fontWeight(.bold)
             Text("Both of you submit ideas, see what matches, and pick a winner!")
                 .font(.subheadline)
-                .foregroundColor(Theme.textSecondary)
+                .foregroundColor(TandemColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
             Button {
@@ -260,9 +260,9 @@ struct DateNightView: View {
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Theme.primary)
+                    .background(TandemColors.primary)
                     .foregroundColor(.white)
-                    .cornerRadius(Theme.buttonRadius)
+                    .cornerRadius(TandemCornerRadius.button)
             }
             .padding(.horizontal, 40)
         }
