@@ -137,7 +137,8 @@ struct UsView: View {
                     WeeklySummarySheet(
                         summary: summary,
                         weeklyGoalHours: stats?.weeklyGoalHours ?? 7,
-                        partnerName: appViewModel.partnerName ?? "Partner"
+                        partnerName: appViewModel.partnerName ?? "Partner",
+                        onDismiss: { showSummarySheet = false }
                     )
                 } else {
                     VStack(spacing: 16) {
