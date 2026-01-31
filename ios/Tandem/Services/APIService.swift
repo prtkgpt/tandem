@@ -27,8 +27,7 @@ struct ErrorResponse: Codable {
 class APIService {
     static let shared = APIService()
 
-    // Change this to your Vercel deployment URL
-    private let baseURL = "https://your-tandem-api.vercel.app"
+    private let baseURL = "https://tandem-livid.vercel.app"
     private var authToken: String? {
         get { KeychainHelper.get(key: "authToken") }
         set {
