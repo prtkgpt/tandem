@@ -49,18 +49,17 @@ export async function GET(req: NextRequest) {
         notificationHour: user.notificationHour,
         notificationMin: user.notificationMin,
         createdAt: user.createdAt,
-        couple: user.couple
-          ? {
-              id: user.couple.id,
-              relationshipStartDate: user.couple.relationshipStartDate,
-              weeklyGoalHours: user.couple.weeklyGoalHours,
-              subscriptionStatus: user.couple.subscriptionStatus,
-              trialEndsAt: user.couple.trialEndsAt,
-              createdAt: user.couple.createdAt,
-            }
-          : null,
-        partnerName,
       },
+      couple: user.couple
+        ? {
+            id: user.couple.id,
+            relationshipStartDate: user.couple.relationshipStartDate,
+            weeklyGoalHours: user.couple.weeklyGoalHours,
+            subscriptionStatus: user.couple.subscriptionStatus,
+            createdAt: user.couple.createdAt,
+          }
+        : null,
+      partnerName,
     });
   } catch (error) {
     console.error("Get me error:", error);
